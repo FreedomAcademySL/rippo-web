@@ -4,6 +4,9 @@ import path from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // IMPORTANTE: si el nombre de tu repo en GitHub es distinto de "ripo-web",
+  // cambiá esta línea a base: "/NOMBRE-DE-TU-REPO/".
+  base: '/ripo-web/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,3 +14,4 @@ export default defineConfig({
     },
   },
 })
+
