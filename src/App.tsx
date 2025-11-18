@@ -15,6 +15,9 @@ function App() {
           <ContactForm />
         </div>
       </main>
+      <div className="wip-badge fixed bottom-4 left-4 z-50 px-4 py-1 text-xs font-semibold backdrop-blur-sm md:text-sm">
+        WIP · Work in progress
+      </div>
     </>
   )
 }
