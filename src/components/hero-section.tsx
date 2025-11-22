@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { motion } from 'motion/react';
 import ripo from '@/assets/ripo.jpeg';
 import nnnoise from '@/assets/nnnoise.svg';
-import logocuerpofit from '@/assets/image.webp';
+import logocuerpofit from '@/assets/image.png';
 
 export function HeroSection() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -80,56 +81,84 @@ export function HeroSection() {
       </div>
 
       {/* Content Container */}
-      <div className="relative z-10 w-full h-full flex items-center">
-        <div className="w-full">
-          <div className="flex flex-col lg:flex-row items-center lg:items-stretch gap-0 h-full lg:h-screen">
+      <div className="relative z-10 w-full h-full flex items-start pt-0 md:items-center">
+        <div className="w-full h-full">
+          <div className="flex flex-col md:flex-row items-center md:items-stretch gap-0 h-full md:h-screen">
 
             {/* Left: Text Content with fluid background */}
-            <div className="relative flex-1 flex flex-col justify-center py-12 lg:py-0 z-10 pr-0 lg:pl-32">
+            <div className="relative pt-16 h-full md:pt-0 flex-1 flex flex-col justify-center py-12 lg:py-0 z-10 pr-0 lg:pl-32">
               <div className="relative z-30">
-                <div className="relative z-40 space-y-10 px-6 lg:pl-16">
+                <div className="relative z-40 space-y-10 px-6 md:px-6 xl:pl-16">
                   {/* Name */}
                   <div className="space-y-0 relative z-50 mb-0 ">
 
-                    <h1 className="russo-title text-3xl sm:text-4xl uppercase sm:text-5xl lg:text-6xl 2xl:text-8xl 3xl:text-10xl font-black text-white tracking-wider text-balance flex gap-2">
+                    <motion.h1
+                      className="russo-title text-4xl sm:text-5xl uppercase sm:text-5xl lg:text-6xl 2xl:text-8xl 3xl:text-10xl font-black text-white tracking-wider text-balance flex gap-2"
+                      initial={{ opacity: 0, y: -50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                    >
                       <span className="relative w-fit break-keep">
                         CuerpoFit
                         <img src={logocuerpofit} alt="Cuerpofit" style={{
-                        }} className="absolute -right-24 md:-right-42 lg:-right-42 object-cover h-[80px] md:h-[100px] lg:h-[120px] xl:h-[150px] lg:-right-22  block top-1/2 -translate-y-1/2" />
+                        }} className="absolute -right-14 sm:-right-20 md:-right-20 lg:-right-32 object-cover h-[80px] md:h-[100px] lg:h-[120px] xl:h-[150px] lg:-right-22  block top-1/2 -translate-y-1/2" />
                       </span>
-                    </h1>
-                    <p className="text-red-400 max-w-[200px] md:max-w-none text-xs md:text-xs lg:text-base xl:text-base 2xl:text-lg tracking-wider uppercase">Soy Joa Ripo, tu entrenador personal</p>
+                    </motion.h1>
+                    <motion.p
+                      className="text-red-400 max-w-[200px] md:max-w-none text-xs md:text-xs lg:text-base xl:text-base 2xl:text-lg tracking-wider uppercase"
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                    >
+                      Soy Joa Ripo, tu entrenador personal
+                    </motion.p>
                   </div>
 
                   {/* Description */}
                   <div className="space-y-6 relative z-50 max-w-xl mt-10">
-                    <p className="text-xl lg:text-2xl text-slate-200 font-light leading-relaxed text-balance">
+                    <motion.p
+                      className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-2xl text-slate-200 font-light leading-relaxed text-balance"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+                    >
                       Un programa directo y efectivo para transformar tu cuerpo con <span className="text-red-300 font-semibold">método, constancia y datos</span>
-                    </p>
-                    <p className="text-lg text-slate-300 leading-relaxed text-balance">
+                    </motion.p>
+                    <motion.p
+                      className="text-lg text-slate-300 leading-relaxed text-balance"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
+                    >
                       Periodización inteligente, nutrición simple que podés sostener, seguimiento semanal y ajustes precisos. Sin humo, sin excusas: <span className="text-red-300 font-semibold">progreso medible todas las semanas</span>
-                    </p>
+                    </motion.p>
                   </div>
 
                   {/* CTA Button */}
-                  <a
-                    href="#contacto"
-                    className="group/cta relative w-fit mt-4 inline-block z-0"
-                  >
-                    <div className="relative text-base md:text-2xl inline-flex items-center gap-3 px-8 py-4 bg-red-500 hover/cta:bg-red-600 text-white font-bold rounded-lg transition-all duration-300 group-hover/cta:shadow-xl group-hover/cta:shadow-red-500/50 group-hover/cta:scale-110 z-10">
-                      Empezá tu transformación
-                      <ArrowDown className="w-5 h-5 group-hover/cta:translate-y-1 transition-transform duration-300" />
-                    </div>
+                  <div className='relative w-fit'>
+                    <motion.a
+                      role="button"
+                      href="#contacto"
+                      className="group/cta w-fit inline-block z-0"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.6, delay: 0.8, ease: 'easeOut' }}
+                    >
+                      <div className=" text-base sm:text-lg md:text-lg lg:text-xl xl:text-2xl inline-flex items-center gap-3 px-8 py-4 bg-red-500 hover/cta:bg-red-600 text-white font-bold rounded-lg transition-all duration-300 group-hover/cta:shadow-xl group-hover/cta:shadow-red-500/50 group-hover/cta:scale-110 z-10">
+                        Empezá tu transformación
+                        <ArrowDown className="w-5 h-5 group-hover/cta:translate-y-1 transition-transform duration-300" />
+                      </div>
+                    </motion.a>
                     <div
-                      className="user-select-none user-drag-none pointer-events-none absolute top-1/2 -translate-y-1/2 right-1/2 translate-x-1/2 w-[520px] h-[320px] bg-red-500/20 group-hover/cta:bg-red-500/25 rounded-full blur-3xl animate-float-reverse z-0"
-                      style={parallaxStyle(50)}
+                      className="user-select-none user-drag-none pointer-events-none absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-[520px] h-[320px] bg-red-500/20 group-hover/cta:bg-red-500/25 rounded-full blur-3xl animate-float-reverse z-0"
+                      style={parallaxStyle(60)}
                     ></div>
-                  </a>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="relative flex-1 overflow-hidden scale-110">
-              <div className="relative group/image flex-1 h-full hidden lg:flex items-center justify-end overflow-hidden">
+            <div className="absolute -right-[0px] w-[250px] md:right-0 md:relative h-full flex-1 overflow-hidden scale-100">
+              <div className="relative group/image flex-1 h-full md:flex items-center justify-end overflow-hidden">
                 <div
                   className="relative w-full h-full"
                   style={{
@@ -142,6 +171,9 @@ export function HeroSection() {
                     alt="Cuerpofit - Joa Ripo"
                     className="w-full h-full object-cover group-hover/image:scale-115 transition-all duration-500"
                   />
+                  <div className='absolute block md:hidden top-0 left-0 w-full h-full bg-slate-900/60'>
+
+                  </div>
                 </div>
                 <div
                   style={{
@@ -156,12 +188,19 @@ export function HeroSection() {
         </div>
       </div>
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 hidden lg:flex">
+      <motion.a
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 hidden lg:flex cursor-pointer"
+        role="button"
+        href="#contacto"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 1.2, ease: 'easeOut' }}
+      >
         <div className="flex flex-col items-center gap-2 text-red-400">
           <span className="text-sm font-medium">Desliza para más</span>
           <ArrowDown className="w-5 h-5 animate-bounce" />
         </div>
-      </div>
+      </motion.a>
     </section>
   );
 }

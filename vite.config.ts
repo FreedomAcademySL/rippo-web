@@ -8,6 +8,7 @@ export default defineConfig({
   // cambiá esta línea a base: "/NOMBRE-DE-TU-REPO/".
   base: '/rippo-web/',
   plugins: [react()],
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
