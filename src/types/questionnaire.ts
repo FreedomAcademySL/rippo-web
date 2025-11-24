@@ -24,7 +24,7 @@ export interface QuestionnaireQuestion {
   title: string
   category: string
   required?: boolean
-  description?: string
+  description?: ReactNode
   clarification?: string
   type?: QuestionnaireQuestionType
   answers?: QuestionnaireAnswer[]

@@ -1,4 +1,10 @@
 import type { QuestionnaireQuestion } from '@/types/questionnaire'
+import {
+  Addiction,
+  AddictionFrequency,
+  SupplementHowOften,
+  SupplementUnit,
+} from '@/types/form-cuerpo-fit'
 
 export const questionnaireClarification = (
   <div className="space-y-4 text-sm leading-relaxed text-justify">
@@ -288,22 +294,29 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     required: true,
     type: 'multi-choice',
     answers: [
-      { id: 'vice_cannabis', text: 'Fumo marihuana' },
-      { id: 'vice_cigarettes', text: 'Fumo cigarrillo' },
-      { id: 'vice_alcohol', text: 'Tomo bastante alcohol' },
-      { id: 'vice_gambling', text: 'Tengo ludopatía (casino)' },
-      { id: 'vice_videogames', text: 'Juego bastante a los videojuegos' },
-      { id: 'vice_tiktok', text: 'Uso demasiado TikTok u otras apps para distraerme' },
+      { id: Addiction.WEED, text: 'Fumo marihuana' },
+      { id: Addiction.CIGARETTES, text: 'Fumo cigarrillo' },
+      { id: Addiction.ALCOHOL, text: 'Tomo bastante alcohol' },
+      { id: Addiction.GAMBLING, text: 'Tengo ludopatía (casino)' },
+      { id: Addiction.VIDEOGAMES, text: 'Juego bastante a los videojuegos' },
+      { id: Addiction.RRSS, text: 'Uso demasiado TikTok u otras apps para distraerme' },
       { id: 'vice_none', text: 'No tengo ningún vicio', value: 3 },
     ],
   },
+
   {
-    id: 'vices_detail',
-    title: 'Si tenés algún vicio, ¿cuánta cantidad suele ser y cada cuánto?',
+    id: 'vices_frequency',
+    title: '¿Cada cuánto lo consumís?',
     category: 'habitos',
-    type: 'textarea',
-    placeholder: 'Ejemplo: Fumo 3 cigarrillos por día | Juego 4 horas diarias',
+    type: 'single-choice',
+    answers: [
+      { id: AddictionFrequency.HOUR, text: 'Cada hora' },
+      { id: AddictionFrequency.DAY, text: 'Por día' },
+      { id: AddictionFrequency.WEEK, text: 'Por semana' },
+      { id: AddictionFrequency.MONTH, text: 'Por mes' },
+    ],
   },
+
   {
     id: 'other_health_conditions',
     title: '¿Tenés HOY alguna de estas otras condiciones?',
@@ -401,12 +414,42 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     ],
   },
   {
-    id: 'supplements',
-    title:
-      '¿Tomás o consumís algún suplemento, o algún medicamento? Si es así, ¿cuánto y cada cuánto?',
+    id: 'supplement',
+    title: '¿Tomás o consumís algún suplemento o medicamento? Contame cuál/es.',
     category: 'salud',
     type: 'textarea',
-    placeholder: 'Detallá dosis y frecuencia',
+    placeholder: 'Ej: Creatina, Omega 3, Ibuprofeno...',
+  },
+  {
+    id: 'supplement_unit',
+    title: 'Unidad de medida del suplemento/medicamento',
+    category: 'salud',
+    type: 'single-choice',
+    answers: [
+      { id: SupplementUnit.MG, text: 'mg' },
+      { id: SupplementUnit.G, text: 'g' },
+      { id: SupplementUnit.ML, text: 'ml' },
+    ],
+  },
+  {
+    id: 'supplement_amount',
+    title: '¿Cuánta cantidad tomás en cada dosis?',
+    category: 'salud',
+    type: 'number',
+    placeholder: 'Ej: 5',
+    helperText: 'Ingresá sólo números. Ejemplo: 5',
+  },
+  {
+    id: 'supplement_frequency',
+    title: '¿Con qué frecuencia lo tomás?',
+    category: 'salud',
+    type: 'single-choice',
+    answers: [
+      { id: SupplementHowOften.HOUR, text: 'Cada hora' },
+      { id: SupplementHowOften.DAY, text: 'Por día' },
+      { id: SupplementHowOften.WEEK, text: 'Por semana' },
+      { id: SupplementHowOften.MONTH, text: 'Por mes' },
+    ],
   },
   {
     id: 'video_upload',
@@ -523,6 +566,15 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     placeholder: 'Ejemplo: Me recomendó Juan Perez',
   },
   {
+    id: 'email',
+    title: '¿Cuál es tu email?',
+    category: 'contacto',
+    required: true,
+    type: 'text',
+    placeholder: 'Ejemplo: juan@email.com',
+    helperText: 'Usá el mail que revisás todos los días.',
+  },
+  {
     id: 'instagram',
     title: '¿Cuál es tu usuario de Instagram?',
     category: 'contacto',
@@ -531,12 +583,30 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     placeholder: 'Ejemplo: @joa.ripoli',
   },
   {
-    id: 'whatsapp',
-    title: '¿Cuál es tu número de Whatsapp con código de país? (sin signos, solo números)',
+    id: 'whatsapp_country_code',
+    title: 'Código de país de tu Whatsapp (sin signos, solo números)',
     category: 'contacto',
     required: true,
-    type: 'phone',
-    placeholder: 'Ejemplo: 5491127385112',
+    type: 'number',
+    placeholder: 'Ejemplo: 54',
+    helperText: 'Escribí 1 a 3 dígitos. Ej: 54 para Argentina.',
+  },
+  {
+    id: 'whatsapp_number',
+    title: 'Número local de Whatsapp (sin el código de país)',
+    category: 'contacto',
+    required: true,
+    type: 'number',
+    placeholder: 'Ejemplo: 1122334455',
+    helperText: 'Sólo números, sin espacios ni prefijos.',
+  },
+  {
+    id: 'whatsapp_full',
+    title: '¿Tenés el número completo con +? (Opcional)',
+    category: 'contacto',
+    type: 'text',
+    placeholder: 'Ejemplo: +5491122334455',
+    helperText: 'Si ya lo tenés armado, pegalo acá para que lo revisemos.',
   },
   {
     id: 'whatsapp_confirmation',

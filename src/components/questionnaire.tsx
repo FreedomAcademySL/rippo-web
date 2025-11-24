@@ -61,7 +61,7 @@ export interface QuestionnaireRef {
 
 const buildAutocompleteAnswers = (
   questions: QuestionnaireQuestion[],
-  questionIndex: number,
+  _questionIndex: number,
 ): Record<string, QuestionnaireStoredAnswer> => {
   const nextAnswers: Record<string, QuestionnaireStoredAnswer> = {}
 
@@ -127,6 +127,15 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [isDisabled, setIsDisabled] = useState(false)
     const [isProcessingFile, setIsProcessingFile] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const processEnv =
+      typeof globalThis !== 'undefined'
+        ? (
+            (globalThis as typeof globalThis & {
+              process?: { env?: Record<string, string | undefined> }
+            }).process?.env ?? null
+          )
+        : null
+    const showDebugControls = processEnv?.NEXT_PUBLIC_ENABLE_DEBUG_CONTROLS === 'true'
 
     const handleAutocomplete = useCallback(() => {
       setAnswers((prev) => ({
@@ -687,6 +696,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                     <p className="text-center text-xs font-semibold text-amber-300">
                       Completá el captcha para poder enviar el formulario.
                     </p>
+                  )}
+                  {showDebugControls && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
+                      onClick={() => setCaptchaToken(`debug-bypass-${Date.now()}`)}
+                    >
+                      Saltar captcha (debug)
+                    </Button>
                   )}
                 </div>
               )}

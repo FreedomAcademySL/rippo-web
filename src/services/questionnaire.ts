@@ -1,6 +1,10 @@
 'use client'
 
 import type { QuestionnaireResult } from '@/types/questionnaire'
+import { buildFormCuerpoFitFormData, mapQuestionnaireResultToDto } from '@/services/questionnaire-mapper'
+
+const CUERPO_FIT_ENDPOINT = ''
+const FALLBACK_WHATSAPP = '5491127385112'
 
 export interface QuestionnaireSubmissionResponse {
   whatsapp: string
@@ -14,19 +18,41 @@ export interface QuestionnaireSubmissionResponse {
 export async function submitQuestionnaireApplication(
   payload: QuestionnaireResult,
 ): Promise<QuestionnaireSubmissionResponse> {
-  // Simulamos latencia de red / procesamiento
-  await new Promise((resolve) => setTimeout(resolve, 1200))
-
-  // Log interno para inspeccionar el payload enviado
+  const formData = buildFormCuerpoFitFormData(payload)
+  const { dto } = mapQuestionnaireResultToDto(payload)
   // eslint-disable-next-line no-console
-  console.log('API Dummy recibió:', payload)
+  console.log('[Questionnaire] DTO listo para enviar:', dto)
 
-  // Elegimos 200 o 201 para emular variaciones del backend
-  const status = Math.random() > 0.5 ? 200 : 201
+  if (!CUERPO_FIT_ENDPOINT) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[Questionnaire] NEXT_PUBLIC_CUERPOFIT_ENDPOINT no está definido. Enviando respuesta dummy.',
+      dto,
+    )
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    return {
+      status: 200,
+      whatsapp: FALLBACK_WHATSAPP,
+    }
+  }
+
+  const response = await fetch(CUERPO_FIT_ENDPOINT, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '')
+    throw new Error(
+      `[Questionnaire] Error al enviar FormData (${response.status}): ${errorBody}`,
+    )
+  }
+
+  const data = await response.json().catch(() => ({}))
 
   return {
-    status,
-    whatsapp: '5491127385112',
+    status: response.status,
+    whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : FALLBACK_WHATSAPP,
   }
 }
 
