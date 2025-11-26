@@ -164,22 +164,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       },
     ],
   },
-  {
-    id: 'answers_confidence',
-    title: '¿Estás seguro de que respondiste bien las anteriores preguntas?',
-    category: 'compromiso',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      { id: 'answers_confident', text: 'Sí Ripo, revisé y respondí todo muy bien 💪🏼', value: 2 },
-      {
-        id: 'answers_not_sure',
-        text: 'No revisé, por lo que no voy a continuar este formulario',
-        value: 0,
-        blocksProgress: true,
-      },
-    ],
-  },
+ 
   {
     id: 'full_name',
     title: '¿Tu Nombre y tu Apellido?',
