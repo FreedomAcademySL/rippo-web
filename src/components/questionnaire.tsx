@@ -7,6 +7,8 @@ import {
   useImperativeHandle,
   type ChangeEvent,
   useMemo,
+  useEffect,
+  startTransition,
   type JSX,
 } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -17,6 +19,7 @@ import type {
   QuestionnaireResult,
   QuestionnaireStoredAnswer,
   QuestionnaireQuestion,
+  QuestionnaireDependencyConfig,
 } from '@/types/questionnaire'
 import {
   DEFAULT_THEME,
@@ -61,11 +64,31 @@ export interface QuestionnaireRef {
 
 const buildAutocompleteAnswers = (
   questions: QuestionnaireQuestion[],
-  _questionIndex: number,
 ): Record<string, QuestionnaireStoredAnswer> => {
   const nextAnswers: Record<string, QuestionnaireStoredAnswer> = {}
 
   questions.forEach((question, index) => {
+    if (question.fields?.length) {
+      nextAnswers[question.id] = {
+        id: question.id,
+        text: question.fields
+          .map((field) => field.label ?? field.placeholder ?? `Campo ${field.id}`)
+          .join(', '),
+        fieldValues: question.fields.reduce<Record<string, string>>((acc, field, fieldIndex) => {
+          if (field.type === 'number') {
+            acc[field.id] = String(field.min ?? 1)
+          } else if (field.type === 'phone') {
+            acc[field.id] = '123456789'
+          } else {
+            acc[field.id] = field.placeholder ?? `demo-${fieldIndex + 1}`
+          }
+          return acc
+        }, {}),
+        blocksProgress: false,
+      }
+      return
+    }
+
     if (question.type === 'file') {
       nextAnswers[question.id] = {
         id: `${question.id}-demo-video`,
@@ -77,11 +100,32 @@ const buildAutocompleteAnswers = (
     }
 
     if (question.answers && question.answers.length > 0) {
+      if (question.type === 'multi-choice') {
+        const safeAnswers =
+          question.answers.filter((answer) => !answer.blocksProgress) ?? question.answers
+        const pool = safeAnswers.length > 0 ? safeAnswers : question.answers
+        let selectionCount = pool.length
+        if (pool.length >= 3) {
+          selectionCount = 3
+        } else if (pool.length === 2) {
+          selectionCount = 2
+        }
+        const selections = pool.slice(0, selectionCount)
+
+        nextAnswers[question.id] = {
+          id: question.id,
+          text: selections.map((item) => item.text).join(', '),
+          selections,
+          blocksProgress: selections.some((item) => item.blocksProgress),
+        }
+        return
+      }
+
       const first = question.answers.find((answer) => !answer.blocksProgress) ?? question.answers[0]
       nextAnswers[question.id] = {
         id: first.id,
         text: first.text,
-        selections: question.type === 'multi-choice' ? [first] : undefined,
+        selections: undefined,
         blocksProgress: first.blocksProgress,
       }
       return
@@ -89,11 +133,108 @@ const buildAutocompleteAnswers = (
 
     nextAnswers[question.id] = {
       id: `${question.id}-${index}`,
-      text: question.placeholder ?? 'demo',
+      text:
+        question.type === 'number'
+          ? String(question.min ?? 1)
+          : question.type === 'phone'
+            ? '123456789'
+            : question.placeholder ?? 'demo',
     }
   })
 
   return nextAnswers
+}
+
+const parseNumberValue = (value?: string): number | null => {
+  if (!value) {
+    return null
+  }
+  const normalized = value.replace(',', '.')
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const validatePatternValue = (
+  value: string | undefined,
+  label: string,
+  pattern?: string,
+): string | null => {
+  if (!value || !pattern) {
+    return null
+  }
+
+  try {
+    const regex = new RegExp(pattern)
+    if (!regex.test(value.trim())) {
+      return `Revisá el formato de "${label}".`
+    }
+  } catch {
+    // Si el patrón es inválido no cortamos el flujo.
+  }
+
+  return null
+}
+
+const validateNumericValue = (
+  value: string | undefined,
+  label: string,
+  min?: number,
+  max?: number,
+  step?: number,
+): string | null => {
+  if (!value) {
+    return null
+  }
+
+  const parsed = parseNumberValue(value)
+  if (parsed === null) {
+    return `Ingresá un número válido en "${label}".`
+  }
+
+  if (typeof min === 'number' && parsed < min) {
+    return `El valor de "${label}" debe ser al menos ${min}.`
+  }
+
+  if (typeof max === 'number' && parsed > max) {
+    return `El valor de "${label}" debe ser como máximo ${max}.`
+  }
+
+  if (typeof step === 'number' && step > 0) {
+    const base = typeof min === 'number' ? min : 0
+    const multiplier = (parsed - base) / step
+    const rounded = Math.round(multiplier)
+    if (Math.abs(multiplier - rounded) > 1e-6) {
+      return `El valor de "${label}" debe respetar incrementos de ${step}.`
+    }
+  }
+
+  return null
+}
+
+const validateLengthValue = (
+  value: string | undefined,
+  label: string,
+  minLength?: number,
+  maxLength?: number,
+): string | null => {
+  if (!value) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed.length) {
+    return null
+  }
+
+  if (typeof minLength === 'number' && trimmed.length < minLength) {
+    return `El texto de "${label}" debe tener al menos ${minLength} caracteres.`
+  }
+
+  if (typeof maxLength === 'number' && trimmed.length > maxLength) {
+    return `El texto de "${label}" debe tener como máximo ${maxLength} caracteres.`
+  }
+
+  return null
 }
 
 /**
@@ -127,24 +268,75 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [isDisabled, setIsDisabled] = useState(false)
     const [isProcessingFile, setIsProcessingFile] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-    const processEnv =
-      typeof globalThis !== 'undefined'
-        ? (
-            (globalThis as typeof globalThis & {
-              process?: { env?: Record<string, string | undefined> }
-            }).process?.env ?? null
-          )
-        : null
-    const showDebugControls = processEnv?.NEXT_PUBLIC_ENABLE_DEBUG_CONTROLS === 'true'
+
+    const isDependencySatisfied = useCallback(
+      (
+        dependency: QuestionnaireDependencyConfig,
+        currentAnswers: Record<string, QuestionnaireStoredAnswer>,
+      ): boolean => {
+        const dependencyAnswer = currentAnswers[dependency.questionId]
+        if (!dependencyAnswer) {
+          return false
+        }
+        if (dependencyAnswer.selections?.length) {
+          return dependencyAnswer.selections.some((item) => dependency.allowedAnswerIds.includes(item.id))
+        }
+        if (dependencyAnswer.id) {
+          return dependency.allowedAnswerIds.includes(dependencyAnswer.id)
+        }
+        return false
+      },
+      [],
+    )
+
+    const isQuestionVisible = useCallback(
+      (question: QuestionnaireQuestion, currentAnswers: Record<string, QuestionnaireStoredAnswer>): boolean => {
+        if (!question.dependsOn) {
+          return true
+        }
+        const dependencies = Array.isArray(question.dependsOn)
+          ? question.dependsOn
+          : [question.dependsOn]
+        return dependencies.some((dependency) => isDependencySatisfied(dependency, currentAnswers))
+      },
+      [isDependencySatisfied],
+    )
+
+    const visibleQuestions = useMemo(
+      () => questions.filter((question) => isQuestionVisible(question, answers)),
+      [answers, isQuestionVisible, questions],
+    )
+
+    const totalQuestions = visibleQuestions.length
+
+    useEffect(() => {
+      if (showClarification) {
+        return
+      }
+      if (!totalQuestions) {
+        startTransition(() => {
+          setCurrentQuestionIndex(0)
+        })
+        return
+      }
+      if (currentQuestionIndex >= totalQuestions) {
+        startTransition(() => {
+          setCurrentQuestionIndex(totalQuestions - 1)
+        })
+      }
+    }, [currentQuestionIndex, showClarification, totalQuestions])
 
     const handleAutocomplete = useCallback(() => {
+      const autoAnswers = buildAutocompleteAnswers(questions)
       setAnswers((prev) => ({
         ...prev,
-        ...buildAutocompleteAnswers(questions, currentQuestionIndex),
+        ...autoAnswers,
       }))
-      setCurrentQuestionIndex(questions.length - 1)
+      setCurrentQuestionIndex(Math.max(questions.length - 1, 0))
       setError(null)
-    }, [currentQuestionIndex, questions])
+      // eslint-disable-next-line no-console
+      console.info('[Questionnaire][debug-autocomplete]', autoAnswers)
+    }, [questions])
 
     const disableButton = (): void => {
       setIsDisabled(true)
@@ -154,10 +346,12 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       setShowClarification(false)
     }
 
-    const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+    const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0
 
-    const currentQuestion: QuestionnaireQuestion = questions[currentQuestionIndex]
-    const storedAnswer = answers[currentQuestion?.id]
+    const currentQuestion: QuestionnaireQuestion | undefined =
+      visibleQuestions[currentQuestionIndex]
+    const storedAnswer = currentQuestion ? answers[currentQuestion.id] : undefined
+    const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1
     const currentAnswerBlocks = useMemo(
       () => answerBlocksProgress(storedAnswer),
       [storedAnswer],
@@ -165,7 +359,10 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
     const handleAnswerSelect = useCallback(
       (answer: QuestionnaireAnswer) => {
-        const question = questions[currentQuestionIndex]
+        const question = visibleQuestions[currentQuestionIndex]
+        if (!question) {
+          return
+        }
         setAnswers((prev) => ({
           ...prev,
           [question.id]: {
@@ -177,20 +374,57 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         }))
         setError(null)
       },
-      [currentQuestionIndex, questions],
+      [currentQuestionIndex, visibleQuestions],
     )
 
-    const handleInputChange = useCallback((questionId: string, value: string) => {
-      setAnswers((prev) => ({
-        ...prev,
-        [questionId]: {
-          id: value || questionId,
-          text: value,
-          blocksProgress: false,
-        },
-      }))
-      setError(null)
-    }, [])
+    const handleInputChange = useCallback(
+      (questionId: string, value: string, fieldId?: string) => {
+        setAnswers((prev) => {
+          if (fieldId) {
+            const existing = prev[questionId]
+            const nextFieldValues = { ...(existing?.fieldValues ?? {}) }
+            if (value) {
+              nextFieldValues[fieldId] = value
+            } else {
+              delete nextFieldValues[fieldId]
+            }
+
+            if (Object.keys(nextFieldValues).length === 0) {
+              const updated = { ...prev }
+              delete updated[questionId]
+              return updated
+            }
+
+            return {
+              ...prev,
+              [questionId]: {
+                id: questionId,
+                fieldValues: nextFieldValues,
+                text: existing?.text,
+                blocksProgress: false,
+              },
+            }
+          }
+
+          if (!value) {
+            const updated = { ...prev }
+            delete updated[questionId]
+            return updated
+          }
+
+          return {
+            ...prev,
+            [questionId]: {
+              id: value || questionId,
+              text: value,
+              blocksProgress: false,
+            },
+          }
+        })
+        setError(null)
+      },
+      [],
+    )
 
     const handleMultiSelect = useCallback(
       (questionId: string, answer: QuestionnaireAnswer) => {
@@ -267,11 +501,100 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
     // Navega a la siguiente pregunta o finaliza el cuestionario
     const handleNext = useCallback(() => {
-      const question = questions[currentQuestionIndex]
+      const question = visibleQuestions[currentQuestionIndex]
+      if (!question) {
+        return
+      }
       const answer = answers[question.id]
+      const requiresAnswer = question.required && !allowSkip
+      const isFieldQuestion = Boolean(question.fields?.length)
+      const textualTypes: QuestionnaireQuestion['type'][] = [
+        'text',
+        'textarea',
+        'number',
+        'phone',
+        'date',
+      ]
 
-      if (question.required && !answer && !allowSkip) {
-        setError(QUESTIONNAIRE_MESSAGES.required)
+      if (requiresAnswer) {
+        if (!answer) {
+          setError(QUESTIONNAIRE_MESSAGES.required)
+          return
+        }
+
+        if (isFieldQuestion) {
+          const fieldValues = answer.fieldValues ?? {}
+          const allFieldsCompleted = question.fields?.every((field) => {
+            const fieldValue = fieldValues[field.id]
+            return typeof fieldValue === 'string' && fieldValue.trim().length > 0
+          })
+          if (!allFieldsCompleted) {
+            setError(QUESTIONNAIRE_MESSAGES.required)
+            return
+          }
+        } else if (
+          textualTypes.includes(question.type ?? 'text') &&
+          !(answer.text && answer.text.trim())
+        ) {
+          setError(QUESTIONNAIRE_MESSAGES.required)
+          return
+        } else if (question.type === 'multi-choice' && !(answer.selections?.length)) {
+          setError(QUESTIONNAIRE_MESSAGES.required)
+          return
+        }
+      }
+
+      const runAdvancedValidation = (): string | null => {
+        if (!answer) {
+          return null
+        }
+
+        if (isFieldQuestion && question.fields?.length) {
+          return question.fields.reduce<string | null>((acc, field) => {
+            if (acc) {
+              return acc
+            }
+
+            const fieldValue = answer.fieldValues?.[field.id]
+            const fieldLabel = field.label ?? field.placeholder ?? field.id
+            const patternError = validatePatternValue(fieldValue, fieldLabel, field.pattern)
+            if (patternError) {
+              return patternError
+            }
+
+            if (field.type === 'number') {
+              return validateNumericValue(fieldValue, fieldLabel, field.min, field.max, field.step)
+            }
+
+            const fieldType = field.type ?? 'text'
+            const isTextField = fieldType === 'text' || fieldType === 'textarea'
+            if (isTextField) {
+              return validateLengthValue(fieldValue, fieldLabel, field.minLength, field.maxLength)
+            }
+
+            return null
+          }, null)
+        }
+
+        const patternError = validatePatternValue(answer.text, question.title, question.pattern)
+        if (patternError) {
+          return patternError
+        }
+
+        if (question.type === 'number') {
+          return validateNumericValue(answer.text, question.title, question.min, question.max, question.step)
+        }
+
+        if (question.type === 'text' || question.type === 'textarea') {
+          return validateLengthValue(answer.text, question.title, question.minLength, question.maxLength)
+        }
+
+        return null
+      }
+
+      const validationMessage = runAdvancedValidation()
+      if (validationMessage) {
+        setError(validationMessage)
         return
       }
 
@@ -280,27 +603,65 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         return
       }
 
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex((prev) => prev + 1)
+      if (currentQuestionIndex < totalQuestions - 1) {
+        setCurrentQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1))
         setError(null)
         return
       }
 
-      const answeredQuestions = questions.filter((q) => answers[q.id])
-      const serializedAnswers = answeredQuestions.reduce<
-        Record<
-          string,
-          { id: string; value?: string | { type: 'file'; name: string; file?: File } }[]
-        >
-      >(
+      const answeredQuestions = questions.filter(
+        (questionEntry) => answers[questionEntry.id] && isQuestionVisible(questionEntry, answers),
+      )
+      const serializedAnswers = answeredQuestions.reduce<QuestionnaireResult['answers']>(
         (acc, questionEntry) => {
           const stored = answers[questionEntry.id]
           if (!stored) {
             return acc
           }
 
+          if (questionEntry.fields?.length && stored.fieldValues) {
+            const entries = questionEntry.fields
+              .map((field) => {
+                const fieldValue = stored.fieldValues?.[field.id]
+                if (!fieldValue) {
+                  return null
+                }
+                return {
+                  id: questionEntry.id,
+                  fieldId: field.id,
+                  value: fieldValue,
+                }
+              })
+              .filter(
+                (
+                  entry,
+                ): entry is {
+                  id: string
+                  fieldId: string
+                  value: string
+                } => Boolean(entry),
+              )
+            if (entries.length) {
+              acc[questionEntry.id] = entries
+            }
+            return acc
+          }
+
           if (stored.selections?.length) {
-            acc[questionEntry.id] = stored.selections.map((item) => ({ id: item.id }))
+            const selectedIds = stored.selections.map((item) => item.id)
+            if (questionEntry.multiValueFormat === 'array') {
+              acc[questionEntry.id] = [
+                {
+                  id: questionEntry.id,
+                  value: selectedIds,
+                },
+              ]
+              return acc
+            }
+            acc[questionEntry.id] = selectedIds.map((selectionId) => ({
+              id: selectionId,
+              value: selectionId,
+            }))
             return acc
           }
 
@@ -317,13 +678,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
             return acc
           }
 
-          if (
-            questionEntry.type === 'text' ||
-            questionEntry.type === 'textarea' ||
-            questionEntry.type === 'number' ||
-            questionEntry.type === 'phone' ||
-            questionEntry.type === 'date'
-          ) {
+          if (textualTypes.includes(questionEntry.type ?? 'text')) {
             acc[questionEntry.id] = [
               {
                 id: questionEntry.id,
@@ -356,7 +711,17 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       disableButton()
       onComplete(result)
       setIsDisabled(false)
-    }, [allowSkip, answers, currentAnswerBlocks, currentQuestionIndex, onComplete, questions])
+    }, [
+      allowSkip,
+      answers,
+      captchaToken,
+      currentQuestionIndex,
+      isQuestionVisible,
+      onComplete,
+      questions,
+      totalQuestions,
+      visibleQuestions,
+    ])
 
     // Navega a la pregunta anterior
     const handlePrevious = useCallback(() => {
@@ -396,69 +761,88 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         handlePrevious: handleExternalPrevious,
         handleAutocomplete,
         canGoPrevious: currentQuestionIndex > 0 && !showClarification,
-        canGoNext: !isDisabled && !isProcessingFile && !currentAnswerBlocks,
-        isLastQuestion: currentQuestionIndex === questions.length - 1,
+        canGoNext: Boolean(currentQuestion) && !isDisabled && !isProcessingFile && !currentAnswerBlocks,
+        isLastQuestion,
         currentQuestionIndex,
-        totalQuestions: questions.length,
+        totalQuestions,
         showingClarification: showClarification,
       }),
       [
         currentAnswerBlocks,
         currentQuestionIndex,
+        currentQuestion,
         handleAutocomplete,
         handleExternalNext,
         handleExternalPrevious,
         isDisabled,
         isProcessingFile,
-        questions.length,
+        isLastQuestion,
+        totalQuestions,
         showClarification,
       ],
     )
 
-    const renderInputField = () => {
-      switch (currentQuestion.type) {
+    const renderInputField = (
+      question: QuestionnaireQuestion,
+      answer?: QuestionnaireStoredAnswer,
+    ): JSX.Element | null => {
+      const commonInputProps = {
+        inputMode: question.inputMode,
+        min: question.min,
+        max: question.max,
+        step: question.step,
+        pattern: question.pattern,
+      }
+
+      switch (question.type) {
         case 'text':
         case 'phone':
         case 'number':
         case 'date': {
           const inputType =
-            currentQuestion.type === 'phone'
+            question.type === 'phone'
               ? 'tel'
-              : currentQuestion.type === 'number'
+              : question.type === 'number'
                 ? 'number'
-                : currentQuestion.type === 'date'
+                : question.type === 'date'
                   ? 'date'
                   : 'text'
 
           return (
             <Input
               type={inputType}
-              value={storedAnswer?.text ?? ''}
-              placeholder={currentQuestion.placeholder}
-              onChange={(event) => handleInputChange(currentQuestion.id, event.target.value)}
+              value={answer?.text ?? ''}
+              placeholder={question.placeholder}
+              onChange={(event) => handleInputChange(question.id, event.target.value)}
               className="bg-slate-900/40 border border-white/10 text-white placeholder:text-slate-400"
+              {...commonInputProps}
+              {...(question.type === 'text'
+                ? { minLength: question.minLength, maxLength: question.maxLength }
+                : {})}
             />
           )
         }
         case 'textarea':
           return (
             <Textarea
-              value={storedAnswer?.text ?? ''}
-              placeholder={currentQuestion.placeholder}
-              onChange={(event) => handleInputChange(currentQuestion.id, event.target.value)}
-              className="min-h-[120px] bg-slate-900/40 border border-white/10 text-white placeholder:text-slate-400"
+              value={answer?.text ?? ''}
+              placeholder={question.placeholder}
+              onChange={(event) => handleInputChange(question.id, event.target.value)}
+              className="min-h-[120px] resize-none bg-slate-900/40 border border-white/10 text-white placeholder:text-slate-400"
+              minLength={question.minLength}
+              maxLength={question.maxLength}
             />
           )
         case 'file':
-          if (currentQuestion.enableVideoCompression) {
+          if (question.enableVideoCompression) {
             return (
               <VideoUploadField
-                question={currentQuestion}
-                storedAnswer={storedAnswer}
+                question={question}
+                storedAnswer={answer}
                 onCompressionComplete={(payload) =>
-                  handleVideoCompressionComplete(currentQuestion.id, payload)
+                  handleVideoCompressionComplete(question.id, payload)
                 }
-                onRemove={() => handleRemoveFileAnswer(currentQuestion.id)}
+                onRemove={() => handleRemoveFileAnswer(question.id)}
                 onProcessingChange={setIsProcessingFile}
               />
             )
@@ -467,16 +851,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           return (
             <div className="space-y-3">
               <input
-                id={`file-${currentQuestion.id}`}
+                id={`file-${question.id}`}
                 type="file"
-                accept={currentQuestion.accept}
-                multiple={(currentQuestion.maxFiles ?? 1) > 1}
-                onChange={(event) => handleFileChange(currentQuestion, event)}
+                accept={question.accept}
+                multiple={(question.maxFiles ?? 1) > 1}
+                onChange={(event) => handleFileChange(question, event)}
                 className="block w-full rounded-md border border-dashed border-white/30 bg-slate-900/40 p-3 text-white file:mr-4 file:rounded-md file:border-0 file:bg-red-500 file:px-4 file:py-2 file:text-sm file:font-semibold"
               />
-              {storedAnswer?.files && storedAnswer.files.length > 0 && (
+              {answer?.files && answer.files.length > 0 && (
                 <ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">
-                  {storedAnswer.files.map((file) => (
+                  {answer.files.map((file) => (
                     <li key={file.name}>{file.name}</li>
                   ))}
                 </ul>
@@ -488,44 +872,127 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       }
     }
 
-    const renderAnswers = () => {
-      if (currentQuestion.type === 'text' || currentQuestion.type === 'textarea') {
+    const renderFieldInputs = (
+      question: QuestionnaireQuestion,
+      answer?: QuestionnaireStoredAnswer,
+    ): JSX.Element | null => {
+      if (!question.fields?.length) {
+        return null
+      }
+
+      return (
+        <div className="space-y-4">
+          {question.fields.map((field) => {
+            const fieldType = field.type ?? 'text'
+            const htmlInputType =
+              fieldType === 'phone'
+                ? 'tel'
+                : fieldType === 'number'
+                  ? 'number'
+                  : fieldType === 'date'
+                    ? 'date'
+                    : 'text'
+            const value = answer?.fieldValues?.[field.id] ?? ''
+            const fieldId = `${question.id}-${field.id}`
+            const fieldInputProps = {
+              inputMode: field.inputMode,
+              min: field.min,
+              max: field.max,
+              step: field.step,
+              pattern: field.pattern,
+            }
+
+            return (
+              <div key={field.id} className="space-y-2">
+                <label htmlFor={fieldId} className="text-sm font-semibold text-slate-100">
+                  {field.label}
+                </label>
+                {fieldType === 'textarea' ? (
+                  <Textarea
+                    id={fieldId}
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(event) => handleInputChange(question.id, event.target.value, field.id)}
+                    className="min-h-[80px] resize-none bg-slate-900/40 border border-white/10 text-white placeholder:text-slate-400"
+                    minLength={field.minLength}
+                    maxLength={field.maxLength}
+                  />
+                ) : (
+                  <Input
+                    id={fieldId}
+                    type={htmlInputType}
+                    value={value}
+                    placeholder={field.placeholder}
+                    onChange={(event) => handleInputChange(question.id, event.target.value, field.id)}
+                    className="bg-slate-900/40 border border-white/10 text-white placeholder:text-slate-400"
+                    {...(fieldType === 'text'
+                      ? { minLength: field.minLength, maxLength: field.maxLength }
+                      : {})}
+                    {...fieldInputProps}
+                  />
+                )}
+                {field.helperText && (
+                  <p className="text-xs text-slate-300">{field.helperText}</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    const renderAnswers = (
+      question: QuestionnaireQuestion,
+      storedAnswer?: QuestionnaireStoredAnswer,
+    ): JSX.Element | null => {
+      if (question.fields?.length) {
         return (
           <div className="space-y-3">
-            {renderInputField()}
-            {currentQuestion.helperText && (
-              <p className="text-sm text-slate-300">{currentQuestion.helperText}</p>
+            {renderFieldInputs(question, storedAnswer)}
+            {question.helperText && (
+              <p className="text-sm text-slate-300">{question.helperText}</p>
+            )}
+          </div>
+        )
+      }
+
+      if (question.type === 'text' || question.type === 'textarea') {
+        return (
+          <div className="space-y-3">
+            {renderInputField(question, storedAnswer)}
+            {question.helperText && (
+              <p className="text-sm text-slate-300">{question.helperText}</p>
             )}
           </div>
         )
       }
 
       if (
-        currentQuestion.type === 'number' ||
-        currentQuestion.type === 'phone' ||
-        currentQuestion.type === 'date' ||
-        currentQuestion.type === 'file'
+        question.type === 'number' ||
+        question.type === 'phone' ||
+        question.type === 'date' ||
+        question.type === 'file'
       ) {
         return (
           <div className="space-y-3">
-            {renderInputField()}
-            {currentQuestion.helperText && (
-              <p className="text-sm text-slate-300">{currentQuestion.helperText}</p>
+            {renderInputField(question, storedAnswer)}
+            {question.helperText && (
+              <p className="text-sm text-slate-300">{question.helperText}</p>
             )}
           </div>
         )
       }
 
-      if (currentQuestion.type === 'multi-choice') {
+      if (question.type === 'multi-choice') {
         return (
           <div className="grid gap-3">
-            {currentQuestion.answers?.map((answer) => {
+            {question.answers?.map((option) => {
               const isSelected =
-                storedAnswer?.selections?.some((item) => item.id === answer.id) ?? false
+                storedAnswer?.selections?.some((item) => item.id === option.id) ?? false
 
               return (
                 <Button
-                  key={answer.id}
+                  key={option.id}
                   variant={isSelected ? 'default' : 'outline'}
                   className={cn(
                     'h-fit w-full p-4 text-left transition-all',
@@ -534,11 +1001,11 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                       ? 'bg-red-500 hover:bg-red-600 text-white'
                       : 'bg-transparent text-white/85 border-white/20 hover:bg-red-500/15 hover:text-white',
                   )}
-                  onClick={() => handleMultiSelect(currentQuestion.id, answer)}
+                  onClick={() => handleMultiSelect(question.id, option)}
                 >
-                  <span className="font-medium">{answer.text}</span>
-                  {answer.description && (
-                    <span className="text-sm opacity-70">{answer.description}</span>
+                  <span className="font-medium">{option.text}</span>
+                  {option.description && (
+                    <span className="text-sm opacity-70">{option.description}</span>
                   )}
                 </Button>
               )
@@ -549,22 +1016,22 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
       return (
         <div className="grid gap-3">
-          {currentQuestion.answers?.map((answer) => (
+          {question.answers?.map((option) => (
             <Button
-              key={answer.id}
-              variant={storedAnswer?.id === answer.id ? 'default' : 'outline'}
+              key={option.id}
+              variant={storedAnswer?.id === option.id ? 'default' : 'outline'}
               className={cn(
                 'h-fit w-full p-4 text-left transition-all hover:scale-[1.01]',
                 'flex flex-col items-start gap-1 whitespace-normal break-words',
-                storedAnswer?.id === answer.id
+                storedAnswer?.id === option.id
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-transparent text-white/90 border-white/20 hover:bg-red-500/15 hover:text-white',
               )}
-              onClick={() => handleAnswerSelect(answer)}
+              onClick={() => handleAnswerSelect(option)}
             >
-              <span className="font-medium">{answer.text}</span>
-              {answer.description && (
-                <span className="text-sm opacity-70">{answer.description}</span>
+              <span className="font-medium">{option.text}</span>
+              {option.description && (
+                <span className="text-sm opacity-70">{option.description}</span>
               )}
             </Button>
           ))}
@@ -572,8 +1039,8 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       )
     }
 
-    const isLastQuestion = currentQuestionIndex === questions.length - 1
     const isNextDisabled =
+      !currentQuestion ||
       isDisabled ||
       isProcessingFile ||
       currentAnswerBlocks ||
@@ -617,7 +1084,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 )}
               </div>
             </motion.div>
-          ) : (
+          ) : currentQuestion ? (
             <motion.div
               key={currentQuestion.id}
               initial="hidden"
@@ -627,11 +1094,11 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               transition={TRANSITION_CONFIG}
               className={cn('relative space-y-6', hideButtons ? 'pb-4' : 'pb-20')}
             >
-              {showProgressBar && (
+              {showProgressBar && totalQuestions > 0 && (
                 <div className="mb-6">
                   <div className="mb-2 flex items-center justify-between text-sm text-slate-200">
                     <span>
-                      Pregunta {currentQuestionIndex + 1} de {questions.length}
+                      Pregunta {currentQuestionIndex + 1} de {totalQuestions}
                     </span>
                     <span>{Math.round(progress)}%</span>
                   </div>
@@ -660,7 +1127,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 )}
               </div>
 
-              {renderAnswers()}
+              {renderAnswers(currentQuestion, storedAnswer)}
 
               {currentQuestion.clarification && (
                 <div className="text-sm italic text-slate-300">
@@ -697,7 +1164,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                       Completá el captcha para poder enviar el formulario.
                     </p>
                   )}
-                  {showDebugControls && (
+                  {true && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -728,14 +1195,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                       opacity: isNextDisabled ? 0.33 : 1,
                     }}
                   >
-                    {currentQuestionIndex === questions.length - 1
+                    {isLastQuestion
                       ? QUESTIONNAIRE_MESSAGES.submit
                       : QUESTIONNAIRE_MESSAGES.next}
                   </Button>
                 </div>
               )}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     )

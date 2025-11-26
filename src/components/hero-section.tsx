@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import ripo from '@/assets/ripo.jpeg';
@@ -25,6 +26,40 @@ export function HeroSection() {
     transform: `translate(${mousePosition.x * intensity}px, ${mousePosition.y * intensity}px)`,
     transition: 'transform 0.1s ease-out',
   });
+
+  const smoothScrollTo = (targetY: number, duration = 700) => {
+    const startY = window.scrollY;
+    const distance = targetY - startY;
+    const startTime = performance.now();
+
+    const easeInOutCubic = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeInOutCubic(progress);
+
+      window.scrollTo(0, startY + distance * easedProgress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+
+    requestAnimationFrame(animateScroll);
+  };
+
+  const handleSmoothScroll = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const target = document.querySelector('#contacto');
+    if (!target) {
+      return;
+    }
+
+    const targetOffset = target.getBoundingClientRect().top + window.scrollY;
+    smoothScrollTo(targetOffset);
+  };
 
   return (
     <section className="relative w-full h-screen bg-slate-900 overflow-hidden flex items-center justify-center">
@@ -139,6 +174,7 @@ export function HeroSection() {
                     <motion.a
                       role="button"
                       href="#contacto"
+                      onClick={handleSmoothScroll}
                       className="group/cta w-fit inline-block z-0"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -192,6 +228,7 @@ export function HeroSection() {
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 hidden lg:flex cursor-pointer"
         role="button"
         href="#contacto"
+        onClick={handleSmoothScroll}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 1.2, ease: 'easeOut' }}

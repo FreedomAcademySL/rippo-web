@@ -96,6 +96,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'salud',
     required: true,
     type: 'multi-choice',
+    multiValueFormat: 'array',
     answers: [
       { id: 'cond_diabetes', text: 'Diabetes tipo 1 o 2' },
       { id: 'cond_hypo', text: 'Hipotiroidismo' },
@@ -116,7 +117,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: 'Otro (Condiciones actuales)',
     category: 'salud',
     type: 'text',
+    minLength: 3,
+    maxLength: 200,
     placeholder: 'Ej: Tengo asma leve controlada',
+    dependsOn: {
+      questionId: 'health_conditions',
+      allowedAnswerIds: ['cond_other'],
+    },
   },
   {
     id: 'treatment',
@@ -124,6 +131,20 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'salud',
     required: true,
     type: 'single-choice',
+    dependsOn: {
+      questionId: 'health_conditions',
+      allowedAnswerIds: [
+        'cond_diabetes',
+        'cond_hypo',
+        'cond_hyper',
+        'cond_hypertension',
+        'cond_hypotension',
+        'cond_litiasis',
+        'cond_anemia',
+        'cond_infection',
+        'cond_other',
+      ],
+    },
     answers: [
       {
         id: 'treatment_yes',
@@ -165,6 +186,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'datos',
     required: true,
     type: 'text',
+    minLength: 3,
+    maxLength: 80,
     placeholder: 'Ejemplo: Joaquin Ripoli',
   },
   {
@@ -179,12 +202,11 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     ],
   },
   {
-    id: 'age',
-    title: '¿Cuántos años tenés?',
+    id: 'birthday',
+    title: '¿Cuándo es tu próximo cumpleaños?',
     category: 'datos',
     required: true,
-    type: 'number',
-    placeholder: 'Sólo el número, ejemplo: 30',
+    type: 'date',
   },
   {
     id: 'height',
@@ -194,6 +216,10 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'number',
     placeholder: 'Ejemplo: 178',
     helperText: 'Ingresá sólo el número',
+    min: 40,
+    max: 300,
+    step: 1,
+    inputMode: 'numeric',
   },
   {
     id: 'weight',
@@ -203,6 +229,10 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'number',
     placeholder: 'Ejemplo: 80.5',
     helperText: 'Si no sabés, anotá el último peso que recuerdes.',
+    min: 20,
+    max: 300,
+    step: 0.1,
+    inputMode: 'decimal',
   },
   {
     id: 'job',
@@ -210,6 +240,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'contexto',
     required: true,
     type: 'text',
+    minLength: 3,
+    maxLength: 300,
     placeholder: 'Ejemplo: Trabajo como abogado en una oficina',
   },
   {
@@ -218,6 +250,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'contexto',
     required: true,
     type: 'textarea',
+    minLength: 20,
+    maxLength: 1000,
     placeholder: 'Contame qué querés lograr y qué te motiva',
   },
   {
@@ -293,6 +327,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'habitos',
     required: true,
     type: 'multi-choice',
+    multiValueFormat: 'array',
     answers: [
       { id: Addiction.WEED, text: 'Fumo marihuana' },
       { id: Addiction.CIGARETTES, text: 'Fumo cigarrillo' },
@@ -309,6 +344,17 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: '¿Cada cuánto lo consumís?',
     category: 'habitos',
     type: 'single-choice',
+    dependsOn: {
+      questionId: 'vices',
+      allowedAnswerIds: [
+        Addiction.WEED,
+        Addiction.CIGARETTES,
+        Addiction.ALCOHOL,
+        Addiction.GAMBLING,
+        Addiction.VIDEOGAMES,
+        Addiction.RRSS,
+      ],
+    },
     answers: [
       { id: AddictionFrequency.HOUR, text: 'Cada hora' },
       { id: AddictionFrequency.DAY, text: 'Por día' },
@@ -323,6 +369,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'salud',
     required: true,
     type: 'multi-choice',
+    multiValueFormat: 'array',
     answers: [
       { id: 'cond_cholesterol', text: 'Colesterol o triglicéridos elevados' },
       { id: 'cond_gastritis', text: 'Gastritis o acidez' },
@@ -337,7 +384,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: 'Otro (otras condiciones)',
     category: 'salud',
     type: 'text',
+    minLength: 3,
+    maxLength: 100,
     placeholder: 'Detallá cualquier otra condición',
+    dependsOn: {
+      questionId: 'other_health_conditions',
+      allowedAnswerIds: ['cond_other_extra'],
+    },
   },
   {
     id: 'sleep_issues',
@@ -345,6 +398,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'habitos',
     required: true,
     type: 'multi-choice',
+    multiValueFormat: 'array',
     answers: [
       { id: 'sleep_bathroom', text: 'Me despierto a la madrugada para ir al baño' },
       { id: 'sleep_unknown', text: 'Me despierto y no sé por qué' },
@@ -360,7 +414,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: 'Otro (problemas de sueño)',
     category: 'habitos',
     type: 'text',
+    minLength: 3,
+    maxLength: 100,
     placeholder: 'Describí cualquier otro problema para dormir',
+    dependsOn: {
+      questionId: 'sleep_issues',
+      allowedAnswerIds: ['sleep_other'],
+    },
   },
   {
     id: 'wake_up_time',
@@ -389,7 +449,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
     id: 'training_days',
     title:
-      '¿Cuántos días por semana estás dispuesto a entrenar SIN faltar? (Si no entrenás, elegí "3")',
+      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (Si no entrenás, elegí "3")',
     category: 'compromiso',
     required: true,
     type: 'single-choice',
@@ -418,6 +478,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: '¿Tomás o consumís algún suplemento o medicamento? Contame cuál/es.',
     category: 'salud',
     type: 'textarea',
+    minLength: 0,
+    maxLength: 100,
     placeholder: 'Ej: Creatina, Omega 3, Ibuprofeno...',
   },
   {
@@ -494,39 +556,15 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     maxFiles: 1,
     enableVideoCompression: true,
   },
-  {
-    id: 'video_confirmation',
-    title:
-      '¿Grabaste el video de 45 segundos e imitaste a Ripo para que podamos armar tu plan según tu cuerpo?',
-    category: 'logistica',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      {
-        id: 'video_whatsapp',
-        text: 'No, pero hoy sin falta lo voy a enviar por Whatsapp 💪🏼',
-        value: 1,
-        blocksProgress: true,
-      },
-      {
-        id: 'video_uploaded',
-        text: 'Sí Ripo, acabo de subir mi video en este mismo formulario 💪🏼',
-        value: 3,
-      },
-      {
-        id: 'video_not_recording',
-        text: 'No me grabaré, entonces dejaré de contestar este formulario.',
-        value: 0,
-        blocksProgress: true,
-      },
-    ],
-  },
+
   {
     id: 'country',
     title: 'País',
     category: 'datos',
     required: true,
     type: 'text',
+    minLength: 3,
+    maxLength: 60,
     placeholder: 'Ejemplo: Argentina',
   },
   {
@@ -535,15 +573,11 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'datos',
     required: true,
     type: 'text',
+    minLength: 2,
+    maxLength: 80,
     placeholder: 'Ejemplo: Buenos Aires',
   },
-  {
-    id: 'birthday',
-    title: '¿Cuándo es tu próximo cumpleaños?',
-    category: 'datos',
-    required: true,
-    type: 'date',
-  },
+
   {
     id: 'referral',
     title: '¿Cómo llegaste acá?',
@@ -563,7 +597,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: 'Si fue por un amigo/familiar u "Otro", contame quién o cómo',
     category: 'contexto',
     type: 'text',
+    minLength: 3,
+    maxLength: 160,
     placeholder: 'Ejemplo: Me recomendó Juan Perez',
+    dependsOn: {
+      questionId: 'referral',
+      allowedAnswerIds: ['ref_friend', 'ref_other'],
+    },
   },
   {
     id: 'email',
@@ -571,8 +611,12 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'contacto',
     required: true,
     type: 'text',
+    minLength: 5,
+    maxLength: 254,
     placeholder: 'Ejemplo: juan@email.com',
     helperText: 'Usá el mail que revisás todos los días.',
+    pattern: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$',
+    inputMode: 'email',
   },
   {
     id: 'instagram',
@@ -580,57 +624,44 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'contacto',
     required: true,
     type: 'text',
+    minLength: 4,
+    maxLength: 31,
     placeholder: 'Ejemplo: @joa.ripoli',
+    helperText: 'Debe empezar con @ y tener entre 3 y 30 caracteres.',
+    pattern: '^@[A-Za-z0-9._]{3,30}$',
+    inputMode: 'text',
   },
   {
     id: 'whatsapp_country_code',
     title: 'Código de país de tu Whatsapp (sin signos, solo números)',
     category: 'contacto',
     required: true,
-    type: 'number',
+    type: 'phone',
     placeholder: 'Ejemplo: 54',
     helperText: 'Escribí 1 a 3 dígitos. Ej: 54 para Argentina.',
+    pattern: '^\\d{1,3}$',
+    inputMode: 'numeric',
   },
   {
     id: 'whatsapp_number',
     title: 'Número local de Whatsapp (sin el código de país)',
     category: 'contacto',
     required: true,
-    type: 'number',
+    type: 'phone',
     placeholder: 'Ejemplo: 1122334455',
     helperText: 'Sólo números, sin espacios ni prefijos.',
+    pattern: '^\\d{6,15}$',
+    inputMode: 'numeric',
   },
-  {
-    id: 'whatsapp_full',
-    title: '¿Tenés el número completo con +? (Opcional)',
-    category: 'contacto',
-    type: 'text',
-    placeholder: 'Ejemplo: +5491122334455',
-    helperText: 'Si ya lo tenés armado, pegalo acá para que lo revisemos.',
-  },
-  {
-    id: 'whatsapp_confirmation',
-    title: '¿Estás seguro que escribiste bien tu número de Whatsapp?',
-    category: 'contacto',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      { id: 'whatsapp_ok', text: 'Sí Ripo, recién lo revisé y lo escribí perfecto 💪🏼', value: 2 },
-      { id: 'whatsapp_other', text: 'Otro', value: 1 },
-    ],
-  },
-  {
-    id: 'whatsapp_other_detail',
-    title: 'Otro (Whatsapp)',
-    category: 'contacto',
-    type: 'text',
-    placeholder: 'Aclará cualquier detalle extra para contactarte',
-  },
+  
+
   {
     id: 'final_message',
     title: 'Por último: ¿Algo que quieras comentarme antes de armar tu plan?',
     category: 'contexto',
     type: 'textarea',
+    minLength: 0,
+    maxLength: 800,
     placeholder: 'Si no hay nada, podés dejarlo vacío',
   },
   {

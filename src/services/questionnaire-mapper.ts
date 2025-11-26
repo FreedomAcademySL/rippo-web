@@ -124,8 +124,18 @@ const getDateAnswer = (answers: QuestionnaireResult['answers'], questionId: stri
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 }
 
-const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: string): string[] =>
-  getAnswerEntries(answers, questionId).map((entry) => entry.id)
+const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: string): string[] => {
+  const entries = getAnswerEntries(answers, questionId)
+  if (!entries.length) {
+    return []
+  }
+  return entries.flatMap((entry) => {
+    if (Array.isArray(entry.value)) {
+      return entry.value
+    }
+    return entry.id ? [entry.id] : []
+  })
+}
 
 const getFileFromAnswer = (answers: QuestionnaireResult['answers'], questionId: string): File | undefined => {
   const value = getAnswerEntries(answers, questionId)[0]?.value
@@ -181,19 +191,35 @@ const mapTrainingLocation = (answers: QuestionnaireResult['answers']): TrainingL
 
 const mapRequireTreatmentCondition = (
   answers: QuestionnaireResult['answers'],
-): RequireTreatmentConditions | string | null => {
+): RequireTreatmentConditions[] | string[] | null => {
   const selections = getMultiChoiceIds(answers, 'health_conditions')
+  if (!selections.length) {
+    return null
+  }
   if (selections.includes('cond_none')) {
-    return RequireTreatmentConditions.NONE
+    return [RequireTreatmentConditions.NONE]
   }
-  const mapped = selections.map((id) => enumMaps.treatment[id]).find(Boolean)
-  if (mapped) {
-    return mapped
-  }
+
+  const mappedEnums = selections
+    .map((id) => enumMaps.treatment[id])
+    .filter((value): value is RequireTreatmentConditions => Boolean(value))
+
+  let otherDetail = ''
   if (selections.includes('cond_other')) {
-    return getTextAnswer(answers, 'health_conditions_other_detail') || null
+    const detail = getTextAnswer(answers, 'health_conditions_other_detail')
+    otherDetail = detail || 'Otro'
   }
-  return null
+
+  if (!mappedEnums.length && !otherDetail) {
+    return null
+  }
+
+  if (otherDetail) {
+    const enumAsStrings = mappedEnums.map((item) => item as string)
+    return [...enumAsStrings, otherDetail]
+  }
+
+  return mappedEnums
 }
 
 const mapCondition = (answers: QuestionnaireResult['answers']): Condition | string | null => {
@@ -211,19 +237,34 @@ const mapCondition = (answers: QuestionnaireResult['answers']): Condition | stri
   return null
 }
 
-const mapSleepProblem = (answers: QuestionnaireResult['answers']): SleepProblem | string | null => {
+const mapSleepProblem = (
+  answers: QuestionnaireResult['answers'],
+): SleepProblem[] | string[] | null => {
   const selections = getMultiChoiceIds(answers, 'sleep_issues')
   if (!selections.length || selections.includes('sleep_none')) {
     return null
   }
-  const mapped = selections.map((id) => enumMaps.sleep[id]).find(Boolean)
-  if (mapped) {
-    return mapped
-  }
+
+  const mappedEnums = selections
+    .map((id) => enumMaps.sleep[id])
+    .filter((value): value is SleepProblem => Boolean(value))
+
+  let otherDetail = ''
   if (selections.includes('sleep_other')) {
-    return getTextAnswer(answers, 'sleep_other_detail') || null
+    const detail = getTextAnswer(answers, 'sleep_other_detail')
+    otherDetail = detail || 'Otro'
   }
-  return null
+
+  if (!mappedEnums.length && !otherDetail) {
+    return null
+  }
+
+  if (otherDetail) {
+    const enumAsStrings = mappedEnums.map((item) => item as string)
+    return [...enumAsStrings, otherDetail]
+  }
+
+  return mappedEnums
 }
 
 const mapAddiction = (answers: QuestionnaireResult['answers']): {

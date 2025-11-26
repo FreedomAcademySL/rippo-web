@@ -105,9 +105,9 @@ export interface FormCuerpoFitDto {
   addiction: Addiction | string | null
   addictionAmount: number | null
   addictionFrequency: AddictionFrequency | null
-  requireTreatmentCondition: RequireTreatmentConditions | string | null
+  requireTreatmentCondition: RequireTreatmentConditions[] | string[] | null
   condition: Condition | string | null
-  sleepProblem: SleepProblem | string | null
+  sleepProblem: SleepProblem[] | string[] | null
   getUpTime: WakeUpDelay | string | null
   screenBeforeSleep: boolean
   workoutConsistency: number
@@ -124,5 +124,6 @@ export interface FormCuerpoFitDto {
   phone: PhoneDto
   lastComment?: string
 }
+
 
 

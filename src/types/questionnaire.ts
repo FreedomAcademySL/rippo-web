@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, InputHTMLAttributes } from 'react'
 import type { VideoCompressionMetadata } from '@/types/video'
 
 export type QuestionnaireQuestionType =
@@ -10,6 +10,31 @@ export type QuestionnaireQuestionType =
   | 'phone'
   | 'date'
   | 'file'
+
+export type QuestionnaireFieldType = Exclude<
+  QuestionnaireQuestionType,
+  'single-choice' | 'multi-choice' | 'file'
+>
+
+export interface QuestionnaireField {
+  id: string
+  label: string
+  type?: QuestionnaireFieldType
+  placeholder?: string
+  helperText?: string
+  min?: number
+  max?: number
+  step?: number
+  pattern?: string
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
+  minLength?: number
+  maxLength?: number
+}
+
+export interface QuestionnaireDependencyConfig {
+  questionId: string
+  allowedAnswerIds: string[]
+}
 
 export interface QuestionnaireAnswer {
   id: string
@@ -33,6 +58,16 @@ export interface QuestionnaireQuestion {
   accept?: string
   maxFiles?: number
   enableVideoCompression?: boolean
+  dependsOn?: QuestionnaireDependencyConfig | QuestionnaireDependencyConfig[]
+  fields?: QuestionnaireField[]
+  min?: number
+  max?: number
+  step?: number
+  pattern?: string
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
+  multiValueFormat?: 'entries' | 'array'
+  minLength?: number
+  maxLength?: number
 }
 
 export interface QuestionnaireStoredAnswer {
@@ -44,6 +79,7 @@ export interface QuestionnaireStoredAnswer {
   originalFiles?: File[]
   videoCompression?: VideoCompressionMetadata
   blocksProgress?: boolean
+  fieldValues?: Record<string, string>
 }
 
 export interface QuestionnaireTheme {
@@ -55,7 +91,8 @@ export interface QuestionnaireTheme {
 
 export interface QuestionnaireResultAnswer {
   id: string
-  value?: string | { type: 'file'; name: string; file?: File }
+  fieldId?: string
+  value?: string | string[] | { type: 'file'; name: string; file?: File }
 }
 
 export interface QuestionnaireResult {

@@ -89,16 +89,16 @@ export function ContactForm() {
             />
           </div>
 
-          <div className="mt-16 space-y-4">
+          {/* <div className="mt-16 space-y-4">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Debug interno</p>
             <VideoCompressionDebugger />
-          </div>
+          </div> */}
 
           {result && (
             <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10 space-y-3">
               <p className="text-lg font-semibold">¡Listo! Te espero en Whatsapp 👇</p>
               <p className="text-sm text-slate-200">
-                Estamos enviando tus respuestas a la API. Apenas tengamos el número te lo muestro
+                Estamos enviando tus respuestas. Apenas tengamos el número te lo muestro
                 acá mismo.
               </p>
 
