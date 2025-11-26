@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Questionnaire } from '@/components/questionnaire'
-import { VideoCompressionDebugger } from '@/components/video-compression-debugger'
+// import { VideoCompressionDebugger } from '@/components/video-compression-debugger'
 import type { QuestionnaireResult } from '@/types/questionnaire'
 import { questionnaireQuestions, questionnaireClarification } from '@/data/questionnaire'
 import { submitQuestionnaireApplication } from '@/services/questionnaire'
