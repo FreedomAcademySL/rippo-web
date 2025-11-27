@@ -157,11 +157,6 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
         value: 0,
         blocksProgress: true,
       },
-      {
-        id: 'treatment_none',
-        text: 'Ripo, te dije que no tengo ninguna condición. Dejame contestar el formulario en paz 😂',
-        value: 2,
-      },
     ],
   },
  
@@ -231,13 +226,23 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'goal',
-    title: '¿Qué querés conseguir y por qué lo estás buscando?',
+    title: '¿Qué querés conseguir?',
     category: 'contexto',
     required: true,
     type: 'textarea',
     minLength: 20,
     maxLength: 1000,
-    placeholder: 'Contame qué querés lograr y qué te motiva',
+    placeholder: 'Contame qué te motiva',
+  },
+  {
+    id: 'whyGoal',
+    title: '¿Por qué lo estás buscando?',
+    category: 'contexto',
+    required: true,
+    type: 'textarea',
+    minLength: 20,
+    maxLength: 1000,
+    placeholder: 'Contame por qué lo estás buscando',
   },
   {
     id: 'body_scale',
@@ -342,9 +347,9 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     },
     answers: [
       { id: AddictionFrequency.HOUR, text: 'Cada hora' },
-      { id: AddictionFrequency.DAY, text: 'Por día' },
-      { id: AddictionFrequency.WEEK, text: 'Por semana' },
-      { id: AddictionFrequency.MONTH, text: 'Por mes' },
+      { id: AddictionFrequency.DAY, text: 'Cada día' },
+      { id: AddictionFrequency.WEEK, text: 'Cada semana' },
+      { id: AddictionFrequency.MONTH, text: 'Cada mes' },
     ],
   },
 
@@ -434,7 +439,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
     id: 'training_days',
     title:
-      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (Si no entrenás, elegí "3")',
+      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (elegí “3 días” para empezar)',
     category: 'compromiso',
     required: true,
     type: 'single-choice',
@@ -541,16 +546,15 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     maxFiles: 1,
     enableVideoCompression: true,
   },
-
   {
     id: 'country',
     title: 'País',
     category: 'datos',
     required: true,
-    type: 'text',
-    minLength: 3,
-    maxLength: 60,
-    placeholder: 'Ejemplo: Argentina',
+    type: 'select',
+    placeholder: 'Seleccioná tu país',
+    helperText: 'Podés escribir para buscarlo más rápido.',
+    optionsSource: 'countries',
   },
   {
     id: 'city',
@@ -618,14 +622,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'whatsapp_country_code',
-    title: 'Código de país de tu Whatsapp (sin signos, solo números)',
+    title: 'Código internacional de tu Whatsapp',
     category: 'contacto',
     required: true,
-    type: 'phone',
-    placeholder: 'Ejemplo: 54',
-    helperText: 'Escribí 1 a 3 dígitos. Ej: 54 para Argentina.',
-    pattern: '^\\d{1,3}$',
-    inputMode: 'numeric',
+    type: 'select',
+    placeholder: 'Elegí tu prefijo (+54)',
+    helperText: 'Mostramos el signo + para evitar confusiones.',
+    optionsSource: 'callingCodes',
   },
   {
     id: 'whatsapp_number',

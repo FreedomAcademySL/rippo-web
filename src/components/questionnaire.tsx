@@ -20,6 +20,7 @@ import type {
   QuestionnaireStoredAnswer,
   QuestionnaireQuestion,
   QuestionnaireDependencyConfig,
+  QuestionnaireSelectOption,
 } from '@/types/questionnaire'
 import {
   DEFAULT_THEME,
@@ -34,8 +35,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { VideoUploadField } from '@/components/video-upload-field'
 import type { VideoCompressionPayload } from '@/types/video'
 import { RecaptchaField } from '@/components/recaptcha'
+import { useQuestionnairePersistence } from '@/hooks/use-questionnaire-persistence'
+import { useRestCountries } from '@/hooks/use-rest-countries'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const BLOCKER_MESSAGE = 'Volvé cuando estés listo para retomarlo.'
+const VIDEO_QUESTION_ID = 'video_upload'
 
 const answerBlocksProgress = (stored?: QuestionnaireStoredAnswer): boolean => {
   if (!stored) {
@@ -61,6 +72,12 @@ export interface QuestionnaireRef {
   totalQuestions: number
   showingClarification: boolean
 }
+
+const normalizeSearchText = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 
 const buildAutocompleteAnswers = (
   questions: QuestionnaireQuestion[],
@@ -261,13 +278,27 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     },
     ref,
   ): JSX.Element {
-    const [showClarification, setShowClarification] = useState<boolean>(true)
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0)
-    const [answers, setAnswers] = useState<Record<string, QuestionnaireStoredAnswer>>({})
+    const { restoredState, persistState, clearState } = useQuestionnairePersistence(questions)
+    const [showClarification, setShowClarification] = useState<boolean>(
+      restoredState?.showClarification ?? true,
+    )
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(
+      restoredState?.currentQuestionIndex ?? 0,
+    )
+    const [answers, setAnswers] = useState<Record<string, QuestionnaireStoredAnswer>>(
+      restoredState?.answers ?? {},
+    )
     const [error, setError] = useState<string | null>(null)
     const [isDisabled, setIsDisabled] = useState(false)
     const [isProcessingFile, setIsProcessingFile] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [selectFilters, setSelectFilters] = useState<Record<string, string>>({})
+    const [showReturnToFinalShortcut, setShowReturnToFinalShortcut] = useState(false)
+
+    useEffect(() => {
+      persistState({ answers, currentQuestionIndex, showClarification })
+    }, [answers, currentQuestionIndex, persistState, showClarification])
+    const { countries, callingCodes, loading: restCountriesLoading } = useRestCountries()
 
     const isDependencySatisfied = useCallback(
       (
@@ -308,6 +339,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     )
 
     const totalQuestions = visibleQuestions.length
+    const videoQuestionIndex = useMemo(
+      () => visibleQuestions.findIndex((question) => question.id === VIDEO_QUESTION_ID),
+      [visibleQuestions],
+    )
+    const videoAnswer = videoQuestionIndex >= 0 ? answers[VIDEO_QUESTION_ID] : undefined
+    const isVideoUploaded = Boolean(videoAnswer?.files?.length)
+    const isVideoQuestionAvailable = videoQuestionIndex >= 0
+    const canJumpToVideo = isVideoQuestionAvailable && !isVideoUploaded
 
     useEffect(() => {
       if (showClarification) {
@@ -356,6 +395,29 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       () => answerBlocksProgress(storedAnswer),
       [storedAnswer],
     )
+    useEffect(() => {
+      if (currentQuestion?.id !== VIDEO_QUESTION_ID && showReturnToFinalShortcut) {
+        setShowReturnToFinalShortcut(false)
+      }
+    }, [currentQuestion?.id, showReturnToFinalShortcut])
+
+    const handleJumpToVideoQuestion = useCallback(() => {
+      if (videoQuestionIndex < 0) {
+        return
+      }
+      setShowReturnToFinalShortcut(true)
+      setCurrentQuestionIndex(videoQuestionIndex)
+      setError(null)
+    }, [setCurrentQuestionIndex, setError, videoQuestionIndex])
+
+    const handleReturnToFinalStep = useCallback(() => {
+      if (totalQuestions <= 0) {
+        return
+      }
+      setShowReturnToFinalShortcut(false)
+      setCurrentQuestionIndex(Math.max(totalQuestions - 1, 0))
+      setError(null)
+    }, [setCurrentQuestionIndex, setError, totalQuestions])
 
     const handleAnswerSelect = useCallback(
       (answer: QuestionnaireAnswer) => {
@@ -514,6 +576,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         'number',
         'phone',
         'date',
+        'select',
       ]
 
       if (requiresAnswer) {
@@ -708,12 +771,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         completedAt: new Date(),
       }
 
+      clearState()
       disableButton()
       onComplete(result)
       setIsDisabled(false)
     }, [
       allowSkip,
       answers,
+      clearState,
       captchaToken,
       currentQuestionIndex,
       isQuestionVisible,
@@ -782,6 +847,120 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       ],
     )
 
+    const handleSelectFilterChange = useCallback((questionId: string, value: string) => {
+      setSelectFilters((prev) => ({
+        ...prev,
+        [questionId]: value,
+      }))
+    }, [])
+
+    const resetSelectFilter = useCallback((questionId: string) => {
+      setSelectFilters((prev) => {
+        if (!prev[questionId]) {
+          return prev
+        }
+        const next = { ...prev }
+        delete next[questionId]
+        return next
+      })
+    }, [])
+
+    const getSelectOptions = useCallback(
+      (question: QuestionnaireQuestion): QuestionnaireSelectOption[] => {
+        if (question.selectOptions?.length) {
+          return question.selectOptions
+        }
+
+        if (question.optionsSource === 'countries') {
+          return countries
+        }
+
+        if (question.optionsSource === 'callingCodes') {
+          return callingCodes
+        }
+
+        return []
+      },
+      [callingCodes, countries],
+    )
+
+    const renderSelectField = (
+      question: QuestionnaireQuestion,
+      answer?: QuestionnaireStoredAnswer,
+    ): JSX.Element => {
+      const options = getSelectOptions(question)
+      const isLoading =
+        Boolean(question.optionsSource) && restCountriesLoading && options.length === 0
+      const isDisabled = isLoading || options.length === 0
+      const placeholder = isLoading
+        ? 'Cargando opciones...'
+        : question.placeholder ?? 'Seleccioná una opción'
+      const showSearch =
+        question.optionsSource === 'countries' || question.optionsSource === 'callingCodes'
+      const rawFilterValue = selectFilters[question.id] ?? ''
+      const filterValue = rawFilterValue.trim()
+      const normalizedFilter = filterValue ? normalizeSearchText(filterValue) : ''
+      const filteredOptions =
+        normalizedFilter && showSearch
+          ? options.filter((option) =>
+              normalizeSearchText(option.label).includes(normalizedFilter),
+            )
+          : options
+
+      return (
+        <div className="space-y-2">
+          <Select
+            value={answer?.text ?? undefined}
+            onValueChange={(value) => handleInputChange(question.id, value)}
+            disabled={isDisabled}
+            onOpenChange={(open) => {
+              if (!open) {
+                resetSelectFilter(question.id)
+              }
+            }}
+          >
+            <SelectTrigger className="w-full border border-white/10 bg-slate-900/40 text-white placeholder:text-slate-400">
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72 w-[var(--radix-select-trigger-width)] border border-white/10 bg-slate-900/95 text-white shadow-2xl backdrop-blur-lg">
+              {showSearch && (
+                <div className="sticky top-0 z-10 border-b border-white/10 bg-slate-900/95 p-2">
+                  <Input
+                    value={rawFilterValue}
+                    onChange={(event) => handleSelectFilterChange(question.id, event.target.value)}
+                    placeholder={
+                      question.optionsSource === 'callingCodes'
+                        ? 'Buscá por código o país (+54 o Argentina)'
+                        : 'Buscá por nombre (Argentina)'
+                    }
+                    autoFocus
+                    className="h-9 w-full bg-slate-900/50 text-sm text-white placeholder:text-slate-400 focus-visible:ring-red-500"
+                  />
+                </div>
+              )}
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="p-3 text-sm text-slate-300">
+                  No encontramos opciones que coincidan con “{filterValue}”.
+                </div>
+              )}
+            </SelectContent>
+          </Select>
+          {isLoading && <p className="text-xs text-slate-300">Cargando opciones...</p>}
+          {!isLoading && options.length === 0 && (
+            <p className="text-xs text-amber-300">
+              No encontramos opciones disponibles. Intentá recargar la página.
+            </p>
+          )}
+        </div>
+      )
+    }
+
     const renderInputField = (
       question: QuestionnaireQuestion,
       answer?: QuestionnaireStoredAnswer,
@@ -795,6 +974,8 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       }
 
       switch (question.type) {
+        case 'select':
+          return renderSelectField(question, answer)
         case 'text':
         case 'phone':
         case 'number':
@@ -833,18 +1014,33 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               maxLength={question.maxLength}
             />
           )
-        case 'file':
+        case 'file': {
+          const renderReturnToFinalButton =
+            question.id === VIDEO_QUESTION_ID && showReturnToFinalShortcut ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-white/30 bg-white/5 text-xs text-white hover:bg-white/15"
+                onClick={handleReturnToFinalStep}
+              >
+                Volver al final
+              </Button>
+            ) : null
+
           if (question.enableVideoCompression) {
             return (
-              <VideoUploadField
-                question={question}
-                storedAnswer={answer}
-                onCompressionComplete={(payload) =>
-                  handleVideoCompressionComplete(question.id, payload)
-                }
-                onRemove={() => handleRemoveFileAnswer(question.id)}
-                onProcessingChange={setIsProcessingFile}
-              />
+              <div className="space-y-3">
+                <VideoUploadField
+                  question={question}
+                  storedAnswer={answer}
+                  onCompressionComplete={(payload) =>
+                    handleVideoCompressionComplete(question.id, payload)
+                  }
+                  onRemove={() => handleRemoveFileAnswer(question.id)}
+                  onProcessingChange={setIsProcessingFile}
+                />
+                {renderReturnToFinalButton}
+              </div>
             )
           }
 
@@ -865,8 +1061,10 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                   ))}
                 </ul>
               )}
+              {renderReturnToFinalButton}
             </div>
           )
+        }
         default:
           return null
       }
@@ -956,7 +1154,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         )
       }
 
-      if (question.type === 'text' || question.type === 'textarea') {
+      if (question.type === 'text' || question.type === 'textarea' || question.type === 'select') {
         return (
           <div className="space-y-3">
             {renderInputField(question, storedAnswer)}
@@ -1154,26 +1352,62 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               )}
 
               {isLastQuestion && (
-                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-center text-sm text-slate-200">
-                    Confirmanos que sos humano resolviendo el captcha:
-                  </p>
-                  <RecaptchaField onChange={setCaptchaToken} />
-                  {!captchaToken && (
-                    <p className="text-center text-xs font-semibold text-amber-300">
-                      Completá el captcha para poder enviar el formulario.
+                <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="space-y-2 rounded-xl border border-white/10 bg-slate-900/40 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white/90">Estado del video</p>
+                        <p
+                          className={cn(
+                            'text-sm',
+                            isVideoUploaded ? 'text-emerald-300' : 'text-amber-300',
+                          )}
+                        >
+                          {isVideoUploaded
+                            ? 'Video cargado correctamente.'
+                            : 'Todavía no subiste tu video.'}
+                        </p>
+                      </div>
+                      {canJumpToVideo && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="shrink-0 border-white/30 bg-white/5 text-xs text-white hover:bg-white/15"
+                          onClick={handleJumpToVideoQuestion}
+                        >
+                          Ir a la pregunta del video
+                        </Button>
+                      )}
+                    </div>
+                    {!isVideoUploaded && (
+                      <p className="text-xs text-slate-300">
+                        El video es clave para personalizar tu plan. Volvé a esa pregunta y cargalo
+                        antes de enviar.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-center text-sm text-slate-200">
+                      Confirmanos que sos humano resolviendo el captcha:
                     </p>
-                  )}
-                  {true && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-                      onClick={() => setCaptchaToken(`debug-bypass-${Date.now()}`)}
-                    >
-                      Saltar captcha (debug)
-                    </Button>
-                  )}
+                    <RecaptchaField onChange={setCaptchaToken} />
+                    {!captchaToken && (
+                      <p className="text-center text-xs font-semibold text-amber-300">
+                        Completá el captcha para poder enviar el formulario.
+                      </p>
+                    )}
+                    {true && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
+                        onClick={() => setCaptchaToken(`debug-bypass-${Date.now()}`)}
+                      >
+                        Saltar captcha (debug)
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 

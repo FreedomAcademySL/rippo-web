@@ -10,6 +10,7 @@ export type QuestionnaireQuestionType =
   | 'phone'
   | 'date'
   | 'file'
+  | 'select'
 
 export type QuestionnaireFieldType = Exclude<
   QuestionnaireQuestionType,
@@ -29,6 +30,11 @@ export interface QuestionnaireField {
   inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
   minLength?: number
   maxLength?: number
+}
+
+export interface QuestionnaireSelectOption {
+  label: string
+  value: string
 }
 
 export interface QuestionnaireDependencyConfig {
@@ -60,6 +66,8 @@ export interface QuestionnaireQuestion {
   enableVideoCompression?: boolean
   dependsOn?: QuestionnaireDependencyConfig | QuestionnaireDependencyConfig[]
   fields?: QuestionnaireField[]
+  selectOptions?: QuestionnaireSelectOption[]
+  optionsSource?: 'countries' | 'callingCodes'
   min?: number
   max?: number
   step?: number
