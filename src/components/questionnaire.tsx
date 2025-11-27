@@ -79,6 +79,20 @@ const normalizeSearchText = (value: string): string =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
+const buildDefaultDateAnswer = (question: QuestionnaireQuestion): string => {
+  const today = new Date()
+  let targetAge = typeof question.minAge === 'number' ? question.minAge : 25
+  if (typeof question.maxAge === 'number') {
+    targetAge = Math.min(targetAge, question.maxAge)
+  }
+  if (!Number.isFinite(targetAge) || targetAge <= 0) {
+    targetAge = 25
+  }
+  const dateCopy = new Date(today)
+  dateCopy.setFullYear(today.getFullYear() - targetAge)
+  return dateCopy.toISOString().split('T')[0]
+}
+
 const buildAutocompleteAnswers = (
   questions: QuestionnaireQuestion[],
 ): Record<string, QuestionnaireStoredAnswer> => {
@@ -155,6 +169,8 @@ const buildAutocompleteAnswers = (
           ? String(question.min ?? 1)
           : question.type === 'phone'
             ? '123456789'
+            : question.type === 'date'
+              ? buildDefaultDateAnswer(question)
             : question.placeholder ?? 'demo',
     }
   })
@@ -249,6 +265,50 @@ const validateLengthValue = (
 
   if (typeof maxLength === 'number' && trimmed.length > maxLength) {
     return `El texto de "${label}" debe tener como máximo ${maxLength} caracteres.`
+  }
+
+  return null
+}
+
+const calculateAgeFromDate = (value: string): number | null => {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  const today = new Date()
+  let age = today.getFullYear() - parsed.getFullYear()
+  const monthDiff = today.getMonth() - parsed.getMonth()
+  const dayDiff = today.getDate() - parsed.getDate()
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1
+  }
+
+  return age
+}
+
+const validateDateAgeValue = (
+  value: string | undefined,
+  label: string,
+  minAge?: number,
+  maxAge?: number,
+): string | null => {
+  if (!value) {
+    return null
+  }
+
+  const age = calculateAgeFromDate(value)
+  if (age === null || age < 0) {
+    return `Ingresá una fecha válida en "${label}".`
+  }
+
+  if (typeof minAge === 'number' && age < minAge) {
+    return `Necesitás tener al menos ${minAge} años para completar "${label}".`
+  }
+
+  if (typeof maxAge === 'number' && age > maxAge) {
+    return `La edad máxima permitida para "${label}" es ${maxAge} años.`
   }
 
   return null
@@ -646,6 +706,10 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
         if (question.type === 'number') {
           return validateNumericValue(answer.text, question.title, question.min, question.max, question.step)
+        }
+
+        if (question.type === 'date') {
+          return validateDateAgeValue(answer.text, question.title, question.minAge, question.maxAge)
         }
 
         if (question.type === 'text' || question.type === 'textarea') {

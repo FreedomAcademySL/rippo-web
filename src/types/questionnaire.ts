@@ -71,6 +71,8 @@ export interface QuestionnaireQuestion {
   min?: number
   max?: number
   step?: number
+  minAge?: number
+  maxAge?: number
   pattern?: string
   inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
   multiValueFormat?: 'entries' | 'array'

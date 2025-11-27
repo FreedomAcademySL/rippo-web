@@ -159,16 +159,26 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       },
     ],
   },
- 
+
   {
-    id: 'full_name',
-    title: '¿Tu Nombre y tu Apellido?',
+    id: 'name',
+    title: '¿Tu Nombre?',
     category: 'datos',
     required: true,
     type: 'text',
     minLength: 3,
     maxLength: 80,
-    placeholder: 'Ejemplo: Joaquin Ripoli',
+    placeholder: 'Ejemplo: Joaquin',
+  },
+  {
+    id: 'lastName',
+    title: '¿Tu Apellido?',
+    category: 'datos',
+    required: true,
+    type: 'text',
+    minLength: 3,
+    maxLength: 80,
+    placeholder: 'Ejemplo: Ripoli',
   },
   {
     id: 'gender',
@@ -187,6 +197,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'datos',
     required: true,
     type: 'date',
+    minAge: 10,
+    maxAge: 99,
   },
   {
     id: 'height',
@@ -222,7 +234,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 3,
     maxLength: 300,
-    placeholder: 'Ejemplo: Trabajo como abogado en una oficina',
+    placeholder: 'Ejemplo: Trabajo como abogado en una oficina. Estudio. No trabajo.',
   },
   {
     id: 'goal',
@@ -641,8 +653,17 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     pattern: '^\\d{6,15}$',
     inputMode: 'numeric',
   },
-  
-
+  {
+    id: 'whatsapp_confirmation',
+    title: '¿Estás seguro que escribiste bien tu número de Whatsapp? A ese número me voy a comunicar con vos para poder empezar.',
+    category: 'compromiso',
+    required: true,
+    type: 'single-choice',
+    answers: [
+      { id: 'whatsapp_confirmation_yes', text: 'Sí Ripo, estaré atento a la siguiente pantalla para entrar y empezar mi cambio 💪🏼', value: 3 },
+      { id: 'whatsapp_confirmation_no', text: 'No Ripo, voy a volver atrás para corregir mi número de Whatsapp.', value: 0, blocksProgress: true },
+    ],
+  },
   {
     id: 'final_message',
     title: 'Por último: ¿Algo que quieras comentarme antes de armar tu plan?',
