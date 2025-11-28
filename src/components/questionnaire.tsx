@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { VideoUploadField } from '@/components/video-upload-field'
 import type { VideoCompressionPayload } from '@/types/video'
-import { RecaptchaField } from '@/components/recaptcha'
+import { useRecaptchaV3 } from '@/hooks/use-recaptcha-v3'
 import { useQuestionnairePersistence } from '@/hooks/use-questionnaire-persistence'
 import { useRestCountries } from '@/hooks/use-rest-countries'
 import {
@@ -351,9 +351,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [error, setError] = useState<string | null>(null)
     const [isDisabled, setIsDisabled] = useState(false)
     const [isProcessingFile, setIsProcessingFile] = useState(false)
-    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [isCaptchaSatisfied, setIsCaptchaSatisfied] = useState(false)
+    const [captchaScore, setCaptchaScore] = useState<number | null>(null)
     const [selectFilters, setSelectFilters] = useState<Record<string, string>>({})
     const [showReturnToFinalShortcut, setShowReturnToFinalShortcut] = useState(false)
+    const {
+      validate: validateRecaptcha,
+      isVerifying: isRecaptchaVerifying,
+      error: recaptchaError,
+      resetError: resetRecaptchaError,
+    } = useRecaptchaV3({ action: 'questionnaire_submit' })
 
     useEffect(() => {
       persistState({ answers, currentQuestionIndex, showClarification })
@@ -621,8 +628,21 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       setError(null)
     }, [])
 
+    const attemptCaptchaValidation = useCallback(async () => {
+      resetRecaptchaError()
+      const response = await validateRecaptcha()
+      if (response && response.isHuman) {
+        setIsCaptchaSatisfied(true)
+        setCaptchaScore(response.score ?? null)
+        return true
+      }
+
+      setIsCaptchaSatisfied(false)
+      return false
+    }, [resetRecaptchaError, validateRecaptcha])
+
     // Navega a la siguiente pregunta o finaliza el cuestionario
-    const handleNext = useCallback(() => {
+    const handleNext = useCallback(async () => {
       const question = visibleQuestions[currentQuestionIndex]
       if (!question) {
         return
@@ -736,6 +756,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         return
       }
 
+      if (!isCaptchaSatisfied) {
+        const captchaOk = await attemptCaptchaValidation()
+        if (!captchaOk) {
+          return
+        }
+      }
+
       const answeredQuestions = questions.filter(
         (questionEntry) => answers[questionEntry.id] && isQuestionVisible(questionEntry, answers),
       )
@@ -826,8 +853,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         {},
       )
 
-      if (captchaToken) {
-        serializedAnswers.__captcha = [{ id: 'captcha', value: captchaToken }]
+      if (isCaptchaSatisfied) {
+        serializedAnswers.__captcha = [
+          {
+            id: 'captcha',
+            value: captchaScore !== null ? `score:${captchaScore.toFixed(2)}` : 'validated',
+          },
+        ]
       }
 
       const result: QuestionnaireResult = {
@@ -839,12 +871,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       disableButton()
       onComplete(result)
       setIsDisabled(false)
+      setIsCaptchaSatisfied(false)
+      setCaptchaScore(null)
     }, [
       allowSkip,
       answers,
+      captchaScore,
       clearState,
-      captchaToken,
       currentQuestionIndex,
+      isCaptchaSatisfied,
+      attemptCaptchaValidation,
       isQuestionVisible,
       onComplete,
       questions,
@@ -870,7 +906,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       if (showClarification) {
         handleStartQuestions()
       } else {
-        handleNext()
+        void handleNext()
       }
     }, [handleNext, onNext, showClarification])
 
@@ -1306,7 +1342,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       isDisabled ||
       isProcessingFile ||
       currentAnswerBlocks ||
-      (isLastQuestion && !captchaToken)
+      (isLastQuestion && isRecaptchaVerifying)
 
     return (
       <div
@@ -1453,24 +1489,32 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
                   <div className="space-y-2">
                     <p className="text-center text-sm text-slate-200">
-                      Confirmanos que sos humano resolviendo el captcha:
+                      Validamos automáticamente que sos humano al enviar el formulario.
                     </p>
-                    <RecaptchaField onChange={setCaptchaToken} />
-                    {!captchaToken && (
-                      <p className="text-center text-xs font-semibold text-amber-300">
-                        Completá el captcha para poder enviar el formulario.
+                    {isRecaptchaVerifying && (
+                      <p className="text-center text-xs text-slate-300">Validando con reCAPTCHA…</p>
+                    )}
+                    {recaptchaError && (
+                      <p className="text-center text-xs font-semibold text-amber-300">{recaptchaError}</p>
+                    )}
+                    {isCaptchaSatisfied && (
+                      <p className="text-center text-xs font-semibold text-emerald-300">
+                        Verificación completada
+                        {captchaScore !== null ? ` (score ${captchaScore.toFixed(2)})` : ''}.
                       </p>
                     )}
-                    {true && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-                        onClick={() => setCaptchaToken(`debug-bypass-${Date.now()}`)}
-                      >
-                        Saltar captcha (debug)
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
+                      onClick={() => {
+                        setIsCaptchaSatisfied(true)
+                        setCaptchaScore(1)
+                        resetRecaptchaError()
+                      }}
+                    >
+                      Saltar captcha (debug)
+                    </Button>
                   </div>
                 </div>
               )}

@@ -477,7 +477,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'supplement',
-    title: '¿Tomás o consumís algún suplemento o medicamento? Contame cuál/es.',
+    title: '¿Tomás o consumís algún suplemento o medicamento? Contame cuál/es. Si no consumís ninguno, podés dejarlo vacío.',
     category: 'salud',
     type: 'textarea',
     minLength: 0,
@@ -489,6 +489,10 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: 'Unidad de medida del suplemento/medicamento',
     category: 'salud',
     type: 'single-choice',
+    dependsOn: {
+      questionId: 'supplement',
+      allowedAnswerIds: ['supplement_yes'],
+    },
     answers: [
       { id: SupplementUnit.MG, text: 'mg' },
       { id: SupplementUnit.G, text: 'g' },
@@ -502,12 +506,20 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'number',
     placeholder: 'Ej: 5',
     helperText: 'Ingresá sólo números. Ejemplo: 5',
+    dependsOn: {
+      questionId: 'supplement',
+      allowedAnswerIds: ['supplement_yes'],
+    },
   },
   {
     id: 'supplement_frequency',
     title: '¿Con qué frecuencia lo tomás?',
     category: 'salud',
     type: 'single-choice',
+    dependsOn: {
+      questionId: 'supplement',
+      allowedAnswerIds: ['supplement_yes'],
+    },
     answers: [
       { id: SupplementHowOften.HOUR, text: 'Cada hora' },
       { id: SupplementHowOften.DAY, text: 'Por día' },

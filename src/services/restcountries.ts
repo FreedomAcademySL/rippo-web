@@ -10,6 +10,7 @@ interface RestCountryResponse {
   idd?: {
     root?: string
     suffixes?: string[]
+    
   }
 }
 
@@ -170,4 +171,5 @@ export const loadRestCountriesData = async (): Promise<RestCountriesData> => {
     }
   }
 }
+
 
