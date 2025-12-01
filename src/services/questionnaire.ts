@@ -3,7 +3,8 @@
 import type { QuestionnaireResult } from '@/types/questionnaire'
 import { buildFormCuerpoFitFormData, mapQuestionnaireResultToDto } from '@/services/questionnaire-mapper'
 
-const CUERPO_FIT_ENDPOINT = ''
+const BASE_API_URL = import.meta.env.VITE_BASE_API
+const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/api/cuerpo-fit` : ''
 const FALLBACK_WHATSAPP = '5491127385112'
 
 export interface QuestionnaireSubmissionResponse {
@@ -24,22 +25,24 @@ export async function submitQuestionnaireApplication(
   console.log('[Questionnaire] DTO listo para enviar:', dto)
 
   if (!CUERPO_FIT_ENDPOINT) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[Questionnaire] NEXT_PUBLIC_CUERPOFIT_ENDPOINT no está definido. Enviando respuesta dummy.',
-      dto,
+    throw new Error(
+      '[Questionnaire] VITE_BASE_API no está definido. No se puede enviar el formulario.',
     )
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    return {
-      status: 200,
-      whatsapp: FALLBACK_WHATSAPP,
-    }
   }
 
-  const response = await fetch(CUERPO_FIT_ENDPOINT, {
-    method: 'POST',
-    body: formData,
-  })
+  let response: Response
+  try {
+    response = await fetch(CUERPO_FIT_ENDPOINT, {
+      method: 'POST',
+      body: formData,
+    })
+  } catch (networkError) {
+    throw new Error(
+      `[Questionnaire] Error de red al enviar formulario: ${
+        (networkError as Error).message ?? 'Error desconocido'
+      }`,
+    )
+  }
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '')
