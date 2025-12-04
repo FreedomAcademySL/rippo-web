@@ -6,7 +6,7 @@ import path from 'node:path'
 export default defineConfig({
   // IMPORTANTE: si el nombre de tu repo en GitHub es distinto de "ripo-web",
   // cambiá esta línea a base: "/NOMBRE-DE-TU-REPO/".
-  base: '/rippo-web/',
+  base: '/',
   plugins: [react()],
   
   resolve: {
