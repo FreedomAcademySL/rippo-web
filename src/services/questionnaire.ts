@@ -4,7 +4,7 @@ import type { QuestionnaireResult } from '@/types/questionnaire'
 import { buildFormCuerpoFitFormData, mapQuestionnaireResultToDto } from '@/services/questionnaire-mapper'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API
-const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/api/cuerpo-fit` : ''
+const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/cuerpo-fit` : ''
 const FALLBACK_WHATSAPP = '5491127385112'
 
 export interface QuestionnaireSubmissionResponse {
