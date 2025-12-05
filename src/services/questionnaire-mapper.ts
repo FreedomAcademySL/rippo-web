@@ -437,10 +437,10 @@ const appendValue = (formData: FormData, key: string, value: unknown) => {
 }
 
 const appendPhone = (formData: FormData, phone: PhoneDto) => {
-  appendValue(formData, 'phone.countryCode', phone.countryCode)
-  appendValue(formData, 'phone.number', phone.number)
+  appendValue(formData, 'countryCode', phone.countryCode)
+  appendValue(formData, 'number', phone.number)
   if (phone.fullNumber) {
-    appendValue(formData, 'phone.fullNumber', phone.fullNumber)
+    appendValue(formData, 'fullNumber', phone.fullNumber)
   }
 }
 
@@ -459,7 +459,7 @@ export const buildFormCuerpoFitFormData = (result: QuestionnaireResult): FormDat
   )
 
   if (videoFile) {
-    formData.append('video', videoFile, videoFile.name)
+    formData.append('file', videoFile, videoFile.name)
   }
 
   return formData
