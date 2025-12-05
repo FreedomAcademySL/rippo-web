@@ -238,7 +238,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'goal',
-    title: '¿Qué querés conseguir?',
+    title: '¿Qué querés lograr con mi ayuda?',
     category: 'contexto',
     required: true,
     type: 'textarea',
@@ -248,7 +248,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'whyGoal',
-    title: '¿Por qué lo estás buscando?',
+    title: '¿Por qué lo estás buscando lograrlo?',
     category: 'contexto',
     required: true,
     type: 'textarea',
@@ -522,9 +522,9 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     },
     answers: [
       { id: SupplementHowOften.HOUR, text: 'Cada hora' },
-      { id: SupplementHowOften.DAY, text: 'Por día' },
-      { id: SupplementHowOften.WEEK, text: 'Por semana' },
-      { id: SupplementHowOften.MONTH, text: 'Por mes' },
+      { id: SupplementHowOften.DAY, text: 'Cada día' },
+      { id: SupplementHowOften.WEEK, text: 'Cada semana' },
+      { id: SupplementHowOften.MONTH, text: 'Cada mes' },
     ],
   },
   {

@@ -12,6 +12,7 @@ import {
   type JSX,
 } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/utils'
 import type {
   QuestionnaireProps,
@@ -1377,6 +1378,17 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       currentAnswerBlocks ||
       (isLastQuestion && isRecaptchaVerifying)
 
+    const isPrimaryActionLoading = isLastQuestion && (isRecaptchaVerifying || isDisabled)
+
+    const primaryButtonClass = cn(
+      'w-32 font-semibold text-white transition focus-visible:ring-2 focus-visible:ring-red-400 flex items-center justify-center gap-2',
+      isPrimaryActionLoading
+        ? 'bg-red-500/60 text-white/70 shadow-none'
+        : 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30',
+      !isPrimaryActionLoading && isNextDisabled && 'bg-red-500/40 text-white/60',
+      'disabled:cursor-not-allowed disabled:opacity-80',
+    )
+
     return (
       <div
         className={cn(
@@ -1566,14 +1578,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                   <Button
                     onClick={handleExternalNext}
                     disabled={isNextDisabled}
-                    className="w-32 bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
-                    style={{
-                      opacity: isNextDisabled ? 0.33 : 1,
-                    }}
+                    className={primaryButtonClass}
                   >
-                    {isLastQuestion
-                      ? QUESTIONNAIRE_MESSAGES.submit
-                      : QUESTIONNAIRE_MESSAGES.next}
+                    {isPrimaryActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>
+                      {isLastQuestion
+                        ? QUESTIONNAIRE_MESSAGES.submit
+                        : QUESTIONNAIRE_MESSAGES.next}
+                    </span>
                   </Button>
                 </div>
               )}
