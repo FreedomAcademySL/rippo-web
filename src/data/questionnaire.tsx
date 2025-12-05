@@ -635,7 +635,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     id: 'instagram',
     title: '¿Cuál es tu usuario de Instagram?',
     category: 'contacto',
-    required: true,
+    required: false,
     type: 'text',
     minLength: 4,
     maxLength: 31,
