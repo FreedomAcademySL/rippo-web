@@ -121,7 +121,7 @@ export function VideoUploadField({
             variant="outline"
             onClick={handleReset}
             disabled={isProcessing}
-            className="border-white/30 text-white hover:bg-white/10"
+            className="border-white/30 text-black hover:bg-white/10"
           >
             Eliminar video
           </Button>

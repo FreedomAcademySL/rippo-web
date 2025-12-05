@@ -39,7 +39,8 @@ export interface QuestionnaireSelectOption {
 
 export interface QuestionnaireDependencyConfig {
   questionId: string
-  allowedAnswerIds: string[]
+  allowedAnswerIds?: string[]
+  requiresText?: boolean
 }
 
 export interface QuestionnaireAnswer {
@@ -108,6 +109,7 @@ export interface QuestionnaireResultAnswer {
 export interface QuestionnaireResult {
   answers: Record<string, QuestionnaireResultAnswer[]>
   completedAt: Date
+  recaptchaToken?: string
 }
 
 export interface QuestionnaireProps {

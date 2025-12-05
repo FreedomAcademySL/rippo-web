@@ -340,6 +340,10 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   videoFile?: File
 } => {
   const answers = result.answers ?? {}
+  const recaptchaToken = result.recaptchaToken
+  if (!recaptchaToken) {
+    throw new Error('No pudimos validar reCAPTCHA. Por favor intentá nuevamente.')
+  }
   const fullName = getTextAnswer(answers, 'full_name')
   const [firstName, ...rest] = fullName.split(/\s+/).filter(Boolean)
   const name = firstName ?? 'Sin nombre'
@@ -405,6 +409,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     country: getTextAnswer(answers, 'country') || 'No informado',
     city: getTextAnswer(answers, 'city') || 'No informado',
     howDidUserEndUpHere: mapReferral(answers),
+    recaptchaToken,
     instagramUser: ensureInstagramHandle(getTextAnswer(answers, 'instagram')),
     phone: buildPhone(answers),
     lastComment: notes ? notes.slice(0, 1000) : undefined,

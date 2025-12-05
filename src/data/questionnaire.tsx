@@ -168,7 +168,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 3,
     maxLength: 80,
-    placeholder: 'Ejemplo: Joaquin',
+    placeholder: 'Joaquin',
   },
   {
     id: 'lastName',
@@ -178,7 +178,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 3,
     maxLength: 80,
-    placeholder: 'Ejemplo: Ripoli',
+    placeholder: 'Ripoli',
   },
   {
     id: 'gender',
@@ -193,7 +193,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'birthday',
-    title: '¿Cuándo es tu próximo cumpleaños?',
+    title: '¿Cuándo es tu fecha de nacimiento?',
     category: 'datos',
     required: true,
     type: 'date',
@@ -206,7 +206,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'datos',
     required: true,
     type: 'number',
-    placeholder: 'Ejemplo: 178',
+    placeholder: '178',
     helperText: 'Ingresá sólo el número',
     min: 40,
     max: 300,
@@ -219,7 +219,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'datos',
     required: true,
     type: 'number',
-    placeholder: 'Ejemplo: 80.5',
+    placeholder: '80.5',
     helperText: 'Si no sabés, anotá el último peso que recuerdes.',
     min: 20,
     max: 300,
@@ -234,7 +234,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 3,
     maxLength: 300,
-    placeholder: 'Ejemplo: Trabajo como abogado en una oficina. Estudio. No trabajo.',
+    placeholder: 'Trabajo como abogado en una oficina. Estudio. No trabajo.',
   },
   {
     id: 'goal',
@@ -491,7 +491,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'single-choice',
     dependsOn: {
       questionId: 'supplement',
-      allowedAnswerIds: ['supplement_yes'],
+      requiresText: true,
     },
     answers: [
       { id: SupplementUnit.MG, text: 'mg' },
@@ -504,11 +504,11 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     title: '¿Cuánta cantidad tomás en cada dosis?',
     category: 'salud',
     type: 'number',
-    placeholder: 'Ej: 5',
+    placeholder: '5',
     helperText: 'Ingresá sólo números. Ejemplo: 5',
     dependsOn: {
       questionId: 'supplement',
-      allowedAnswerIds: ['supplement_yes'],
+      requiresText: true,
     },
   },
   {
@@ -518,7 +518,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'single-choice',
     dependsOn: {
       questionId: 'supplement',
-      allowedAnswerIds: ['supplement_yes'],
+      requiresText: true,
     },
     answers: [
       { id: SupplementHowOften.HOUR, text: 'Cada hora' },
@@ -588,7 +588,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 2,
     maxLength: 80,
-    placeholder: 'Ejemplo: Buenos Aires',
+    placeholder: 'Buenos Aires',
   },
 
   {
@@ -612,7 +612,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 3,
     maxLength: 160,
-    placeholder: 'Ejemplo: Me recomendó Juan Perez',
+    placeholder: 'Me recomendó Juan Perez',
     dependsOn: {
       questionId: 'referral',
       allowedAnswerIds: ['ref_friend', 'ref_other'],
@@ -626,7 +626,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 5,
     maxLength: 254,
-    placeholder: 'Ejemplo: juan@email.com',
+    placeholder: 'ripo@email.com',
     helperText: 'Usá el mail que revisás todos los días.',
     pattern: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$',
     inputMode: 'email',
@@ -639,7 +639,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'text',
     minLength: 4,
     maxLength: 31,
-    placeholder: 'Ejemplo: @joa.ripoli',
+    placeholder: '@joa.ripoli',
     helperText: 'Debe empezar con @ y tener entre 3 y 30 caracteres.',
     pattern: '^@[A-Za-z0-9._]{3,30}$',
     inputMode: 'text',
@@ -660,7 +660,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     category: 'contacto',
     required: true,
     type: 'phone',
-    placeholder: 'Ejemplo: 1122334455',
+    placeholder: '1122334455',
     helperText: 'Sólo números, sin espacios ni prefijos.',
     pattern: '^\\d{6,15}$',
     inputMode: 'numeric',

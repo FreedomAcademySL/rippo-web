@@ -47,6 +47,7 @@ import {
 
 const BLOCKER_MESSAGE = 'Volvé cuando estés listo para retomarlo.'
 const VIDEO_QUESTION_ID = 'video_upload'
+const CAPTCHA_ACTION = 'cuerpo_fit_form'
 
 const answerBlocksProgress = (stored?: QuestionnaireStoredAnswer): boolean => {
   if (!stored) {
@@ -353,6 +354,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [isProcessingFile, setIsProcessingFile] = useState(false)
     const [isCaptchaSatisfied, setIsCaptchaSatisfied] = useState(false)
     const [captchaScore, setCaptchaScore] = useState<number | null>(null)
+    const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
     const [selectFilters, setSelectFilters] = useState<Record<string, string>>({})
     const [showReturnToFinalShortcut, setShowReturnToFinalShortcut] = useState(false)
     const {
@@ -360,7 +362,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       isVerifying: isRecaptchaVerifying,
       error: recaptchaError,
       resetError: resetRecaptchaError,
-    } = useRecaptchaV3({ action: 'questionnaire_submit' })
+    } = useRecaptchaV3({ action: CAPTCHA_ACTION })
 
     useEffect(() => {
       persistState({ answers, currentQuestionIndex, showClarification })
@@ -376,11 +378,28 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         if (!dependencyAnswer) {
           return false
         }
+        if (dependency.requiresText) {
+          const hasPlainText = Boolean(dependencyAnswer.text?.trim())
+          const hasFieldValue = Object.values(dependencyAnswer.fieldValues ?? {}).some((value) =>
+            Boolean(value?.trim()),
+          )
+          if (hasPlainText || hasFieldValue) {
+            return true
+          }
+        }
+
+        const allowedIds = dependency.allowedAnswerIds ?? []
         if (dependencyAnswer.selections?.length) {
-          return dependencyAnswer.selections.some((item) => dependency.allowedAnswerIds.includes(item.id))
+          if (allowedIds.length === 0) {
+            return true
+          }
+          return dependencyAnswer.selections.some((item) => allowedIds.includes(item.id))
         }
         if (dependencyAnswer.id) {
-          return dependency.allowedAnswerIds.includes(dependencyAnswer.id)
+          if (allowedIds.length === 0) {
+            return true
+          }
+          return allowedIds.includes(dependencyAnswer.id)
         }
         return false
       },
@@ -628,17 +647,19 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       setError(null)
     }, [])
 
-    const attemptCaptchaValidation = useCallback(async () => {
+    const attemptCaptchaValidation = useCallback(async (): Promise<string | null> => {
       resetRecaptchaError()
       const response = await validateRecaptcha()
-      if (response && response.isHuman) {
+      if (response && response.isHuman && response.key) {
         setIsCaptchaSatisfied(true)
         setCaptchaScore(response.score ?? null)
-        return true
+        setRecaptchaToken(response.key)
+        return response.key
       }
 
       setIsCaptchaSatisfied(false)
-      return false
+      setRecaptchaToken(null)
+      return null
     }, [resetRecaptchaError, validateRecaptcha])
 
     // Navega a la siguiente pregunta o finaliza el cuestionario
@@ -756,11 +777,20 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         return
       }
 
+      let effectiveRecaptchaToken = recaptchaToken
       if (!isCaptchaSatisfied) {
-        const captchaOk = await attemptCaptchaValidation()
-        if (!captchaOk) {
+        const token = await attemptCaptchaValidation()
+        if (!token) {
           return
         }
+        effectiveRecaptchaToken = token
+      }
+
+      if (!effectiveRecaptchaToken) {
+        setError('No pudimos validar reCAPTCHA. Intentalo nuevamente.')
+        setIsCaptchaSatisfied(false)
+        setRecaptchaToken(null)
+        return
       }
 
       const answeredQuestions = questions.filter(
@@ -865,6 +895,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       const result: QuestionnaireResult = {
         answers: serializedAnswers,
         completedAt: new Date(),
+        recaptchaToken: effectiveRecaptchaToken,
       }
 
       clearState()
@@ -873,6 +904,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       setIsDisabled(false)
       setIsCaptchaSatisfied(false)
       setCaptchaScore(null)
+      setRecaptchaToken(null)
     }, [
       allowSkip,
       answers,
@@ -884,6 +916,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       isQuestionVisible,
       onComplete,
       questions,
+      recaptchaToken,
       totalQuestions,
       visibleQuestions,
     ])
@@ -1510,6 +1543,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                       onClick={() => {
                         setIsCaptchaSatisfied(true)
                         setCaptchaScore(1)
+                        setRecaptchaToken('debug-token')
                         resetRecaptchaError()
                       }}
                     >

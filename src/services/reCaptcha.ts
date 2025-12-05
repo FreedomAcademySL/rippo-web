@@ -23,6 +23,8 @@ export const reCaptcha = async ({ token, action }: ReCaptchaBody): Promise<ReCap
   return {
     isHuman: Boolean(payload.isHuman ?? payload.success ?? (payload.score ?? 0) >= 0.5),
     message: payload.message,
+    score: payload.score,
+    key: payload.key,
   }
 }
 

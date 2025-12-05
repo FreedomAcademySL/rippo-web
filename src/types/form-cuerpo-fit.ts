@@ -120,6 +120,7 @@ export interface FormCuerpoFitDto {
   country: string
   city: string
   howDidUserEndUpHere: string
+  recaptchaToken: string
   instagramUser: string | null
   phone: PhoneDto
   lastComment?: string
