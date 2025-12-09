@@ -165,7 +165,7 @@ export function VideoUploadField({
             />
           </div>
 
-          {displayedMetadata && (
+          {/* {displayedMetadata && (
             <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Original</span>
@@ -192,7 +192,7 @@ export function VideoUploadField({
                 </div>
               ) : null}
             </div>
-          )}
+          )} */}
         </div>
       )}
     </div>

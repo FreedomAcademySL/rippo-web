@@ -28,7 +28,7 @@ export function ContactForm() {
 
     submitQuestionnaireApplication(payload)
       .then((response) => {
-        const whatsappNumber = response.whatsapp || '5491127385112'
+        const whatsappNumber = response.whatsapp || '5491172468898'
         setSubmissionWhatsapp(whatsappNumber)
         setSubmissionMessage('¡Todo listo! El siguiente paso es contactar a Ripo por WhatsApp y empezar tu transformación.')
       })
@@ -59,14 +59,14 @@ export function ContactForm() {
   return (
     <div className="w-full max-w-5xl px-4 py-12 md:px-8">
       <div className="space-y-4 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-red-500">
+        {/* <p className="text-xs uppercase tracking-[0.3em] text-red-500">
           Formulario de aplicación
         </p>
         <h2 className="text-4xl font-black text-slate-900 dark:text-white md:text-5xl">
           Transformate con Ripo 💪
-        </h2>
-        <p className="text-base text-slate-600 dark:text-slate-300 md:text-lg max-w-lg mx-auto text-balance">
-          Contestá las siguientes preguntas con la verdad, para que evalúe si estás listo para empezar tu cambio físico. <br /> Si no estás listo, podés volver cuando lo estés.
+        </h2> */}
+        <p className="text-base text-slate-600 dark:text-slate-300 md:text-2xl mx-auto text-balance">
+          Contestá las siguientes preguntas <b>con la verdad</b>, para que evalúe si estás listo para empezar tu cambio físico. <br /> Si no estás listo, <b>podés volver cuando lo estés</b>.
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export function ContactForm() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                 El número de WhatsApp que cargaste es:
               </p>
-              <p className="text-2xl font-mono text-white">{displayWhatsapp}</p>
+              <p className="text-2xl text-white">{displayWhatsapp}</p>
             </div>
           )}
           <p className="text-sm text-slate-400">

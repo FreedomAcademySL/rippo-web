@@ -145,12 +145,12 @@ export function HeroSection() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                     >
-                      Soy Joa Ripo, tu entrenador personal
+                      El programa más efectivo para transformar tu cuerpo
                     </motion.p>
                   </div>
 
                   {/* Description */}
-                  <div className="space-y-6 relative z-50 max-w-xl mt-10">
+                  {/* <div className="space-y-6 relative z-50 max-w-xl mt-10">
                     <motion.p
                       className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-2xl text-slate-200 font-light leading-relaxed text-balance"
                       initial={{ opacity: 0, y: 30 }}
@@ -167,10 +167,10 @@ export function HeroSection() {
                     >
                       Periodización inteligente, nutrición simple que podés sostener, seguimiento semanal y ajustes precisos. Sin humo, sin excusas: <span className="text-red-300 font-semibold">progreso medible todas las semanas</span>
                     </motion.p>
-                  </div>
+                  </div> */}
 
                   {/* CTA Button */}
-                  <div className='relative w-fit'>
+                  <div className='relative w-fit mt-32'>
                     <motion.a
                       role="button"
                       href="#contacto"

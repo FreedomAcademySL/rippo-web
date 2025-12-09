@@ -24,8 +24,8 @@ interface UseVideoCompressorOptions {
 
 const DEFAULT_OPTIONS: Required<UseVideoCompressorOptions> = {
   maxWidth: 720,
-  videoBitrate: 65_000,
-  audioBitrate: 28_000,
+  videoBitrate: 2_000_000,
+  audioBitrate: 18_000,
 }
 
 const getCompressedFileName = (name: string) => {

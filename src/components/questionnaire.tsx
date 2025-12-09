@@ -1449,17 +1449,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-xs text-white/70 underline underline-offset-2"
-                  onClick={handleAutocomplete}
-                >
-                  Autocompletar cuestionario (debug)
-                </Button>
-              </div>
-
+      
               <div className="space-y-3">
                 <h3 className="text-2xl font-semibold text-white">
                   {currentQuestion.title}{' '}
