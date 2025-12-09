@@ -158,6 +158,26 @@ const ensureInstagramHandle = (value: string): string | null => {
   return `@${trimmed}`
 }
 
+const getNameFields = (answers: QuestionnaireResult['answers']): { name: string; lastName: string } => {
+  const name = getTextAnswer(answers, 'name')
+  const lastName = getTextAnswer(answers, 'lastName')
+
+  if (name || lastName) {
+    return {
+      name: name || 'Sin nombre',
+      lastName: lastName || 'Pendiente',
+    }
+  }
+
+  const legacyFullName = getTextAnswer(answers, 'full_name')
+  const [legacyFirst, ...legacyRest] = legacyFullName.split(/\s+/).filter(Boolean)
+
+  return {
+    name: legacyFirst || 'Sin nombre',
+    lastName: legacyRest.join(' ') || 'Pendiente',
+  }
+}
+
 const buildPhone = (answers: QuestionnaireResult['answers']): PhoneDto => {
   const countryCode = sanitizeNumber(getTextAnswer(answers, 'whatsapp_country_code')) || '00'
   const number = sanitizeNumber(getTextAnswer(answers, 'whatsapp_number')) || '0000000'
@@ -180,7 +200,31 @@ const mapGenderToSexo = (genderId?: string): Sexo =>
 const mapBooleanById = (
   answers: QuestionnaireResult['answers'],
   questionId: keyof typeof YES_IDS,
-): boolean => getSingleChoiceId(answers, questionId)?.toLowerCase() === YES_IDS[questionId]
+): boolean => {
+  const entry = getAnswerEntries(answers, questionId)[0]
+  const yesId = YES_IDS[questionId].toLowerCase()
+
+  const id = entry?.id?.toLowerCase()
+  if (id) {
+    return id === yesId
+  }
+
+  const value = entry?.value
+  if (typeof value === 'string') {
+    return value.toLowerCase() === yesId
+  }
+  if (typeof value === 'number') {
+    return value > 0
+  }
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => String(item).toLowerCase() === yesId)
+  }
+
+  return false
+}
 
 const mapWorkoutConsistency = (answers: QuestionnaireResult['answers']): number =>
   WORKOUT_CONSISTENCY[getSingleChoiceId(answers, 'training_days') ?? ''] ?? 3
@@ -308,9 +352,19 @@ const mapAddiction = (answers: QuestionnaireResult['answers']): {
   }
 }
 
-const mapVideoPreference = (answers: QuestionnaireResult['answers']): UserRecordVideo =>
-  enumMaps.userRecordVideo[getSingleChoiceId(answers, 'video_confirmation') ?? ''] ??
-  UserRecordVideo.NO
+const mapVideoPreference = (
+  answers: QuestionnaireResult['answers'],
+  videoFile?: File,
+): UserRecordVideo => {
+  const selected = enumMaps.userRecordVideo[getSingleChoiceId(answers, 'video_confirmation') ?? '']
+  if (selected) {
+    return selected
+  }
+  if (videoFile) {
+    return UserRecordVideo.FORM
+  }
+  return UserRecordVideo.NO
+}
 
 const mapWakeUpDelay = (answers: QuestionnaireResult['answers']): WakeUpDelay | string | null =>
   enumMaps.wakeUp[getSingleChoiceId(answers, 'wake_up_time') ?? ''] ?? null
@@ -344,16 +398,15 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   if (!recaptchaToken) {
     throw new Error('No pudimos validar reCAPTCHA. Por favor intentá nuevamente.')
   }
-  const fullName = getTextAnswer(answers, 'full_name')
-  const [firstName, ...rest] = fullName.split(/\s+/).filter(Boolean)
-  const name = firstName ?? 'Sin nombre'
-  const lastName = rest.join(' ') || 'Pendiente'
+  const { name, lastName } = getNameFields(answers)
 
   const goal = getTextAnswer(answers, 'goal') || 'No definido'
+  const whyGoal = getTextAnswer(answers, 'whyGoal') || goal
   const finalMessage = getTextAnswer(answers, 'final_message')
   const whatsappOtherDetail = getTextAnswer(answers, 'whatsapp_other_detail')
   const otherTreatmentDetail = getTextAnswer(answers, 'health_conditions_other_detail')
   const otherConditionDetail = getTextAnswer(answers, 'other_health_conditions_detail')
+  const videoFile = mapUserRecordVideoFile(answers)
 
   const { addiction, addictionAmount, addictionFrequency, detail: addictionDetail } = mapAddiction(answers)
   const supplementDescription = getTextAnswer(answers, 'supplement')
@@ -384,7 +437,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     weight: getNumberAnswer(answers, 'weight') ?? 0,
     work: getTextAnswer(answers, 'job') || 'No informado',
     goal,
-    whyGoal: goal,
+    whyGoal,
     weighingScale: mapBooleanById(answers, 'body_scale'),
     foodScale: mapBooleanById(answers, 'food_scale'),
     cookingSpray: mapBooleanById(answers, 'spray_oil'),
@@ -405,7 +458,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     supplementUnit: supplementUnit ?? null,
     supplementHowMany: supplementAmount,
     supplementHowOften: supplementFrequency ?? null,
-    userRecordVideo: mapVideoPreference(answers),
+    userRecordVideo: mapVideoPreference(answers, videoFile),
     country: getTextAnswer(answers, 'country') || 'No informado',
     city: getTextAnswer(answers, 'city') || 'No informado',
     howDidUserEndUpHere: mapReferral(answers),
@@ -417,7 +470,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
 
   return {
     dto,
-    videoFile: mapUserRecordVideoFile(answers),
+    videoFile,
   }
 }
 

@@ -1538,19 +1538,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                         {captchaScore !== null ? ` (score ${captchaScore.toFixed(2)})` : ''}.
                       </p>
                     )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full text-xs text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-                      onClick={() => {
-                        setIsCaptchaSatisfied(true)
-                        setCaptchaScore(1)
-                        setRecaptchaToken('debug-token')
-                        resetRecaptchaError()
-                      }}
-                    >
-                      Saltar captcha (debug)
-                    </Button>
                   </div>
                 </div>
               )}

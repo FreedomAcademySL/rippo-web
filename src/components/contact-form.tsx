@@ -128,20 +128,13 @@ export function ContactForm() {
             <VideoCompressionDebugger />
           </div> */}
 
-          {result && (
+          {result && !showSuccess && (
             <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10 space-y-3">
-              <p className="text-lg font-semibold">¡Listo! Te espero en Whatsapp 👇</p>
-              <p className="text-sm text-slate-200">
-                Estamos enviando tus respuestas. Apenas tengamos el número te lo muestro
-                acá mismo.
-              </p>
-
               {isSubmitting && (
                 <p className="text-sm text-amber-200">
                   Guardando tu aplicación... mantené esta pestaña abierta unos segundos.
                 </p>
               )}
-
               {submissionError && (
                 <p className="text-sm font-semibold text-red-300">{submissionError}</p>
               )}

@@ -193,7 +193,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'birthday',
-    title: '¿Cuándo es tu fecha de nacimiento?',
+    title: '¿Cuándo es tu fecha de nacimiento? (dd/mm/yyyy)',
     category: 'datos',
     required: true,
     type: 'date',
