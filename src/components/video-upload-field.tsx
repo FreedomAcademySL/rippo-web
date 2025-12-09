@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
-import { formatBytes, formatSeconds } from '@/utils'
 import { useVideoCompressor } from '@/hooks/use-video-compressor'
 import type {
   QuestionnaireQuestion,
@@ -30,15 +29,15 @@ export function VideoUploadField({
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  const { compress, status, progress, error, metadata, reset, realtimeFactor } = useVideoCompressor({
+  const { compress, status, progress, error, reset } = useVideoCompressor({
     maxWidth: 720,
   })
 
   const isProcessing = status === 'preparing' || status === 'compressing'
 
-  const displayedMetadata = useMemo(() => {
-    return storedAnswer?.videoCompression ?? metadata ?? null
-  }, [metadata, storedAnswer])
+  // const displayedMetadata = useMemo(() => {
+  //   return storedAnswer?.videoCompression ?? metadata ?? null
+  // }, [metadata, storedAnswer])
 
   useEffect(() => {
     onProcessingChange?.(isProcessing)
