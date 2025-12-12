@@ -15,7 +15,7 @@ export function ContactForm() {
   const [submissionWhatsapp, setSubmissionWhatsapp] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
 
-  const handleComplete = useCallback((payload: QuestionnaireResult) => {
+  const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
     // Dummy output mientras esperamos la API real
     // eslint-disable-next-line no-console
@@ -26,18 +26,19 @@ export function ContactForm() {
     setSubmissionError(null)
     setSubmissionWhatsapp(null)
 
-    submitQuestionnaireApplication(payload)
-      .then((response) => {
-        const whatsappNumber = response.whatsapp || '5491172468898'
-        setSubmissionWhatsapp(whatsappNumber)
-        setSubmissionMessage('¡Todo listo! El siguiente paso es contactar a Ripo por WhatsApp y empezar tu transformación.')
-      })
-      .catch(() => {
-        setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
-      })
-      .finally(() => {
-        setIsSubmitting(false)
-      })
+    try {
+      const response = await submitQuestionnaireApplication(payload)
+      const whatsappNumber = response.whatsapp || '5491172468898'
+      setSubmissionWhatsapp(whatsappNumber)
+      setSubmissionMessage(
+        '¡Todo listo! El siguiente paso es contactar a Ripo por WhatsApp y empezar tu transformación.',
+      )
+    } catch (error) {
+      setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
+      throw error instanceof Error ? error : new Error('questionnaire-submission-failed')
+    } finally {
+      setIsSubmitting(false)
+    }
   }, [])
 
   const showSuccess = Boolean(submissionWhatsapp)
@@ -114,13 +115,23 @@ export function ContactForm() {
         </div>
       ) : (
         <>
-          <div className="mt-10">
-            <Questionnaire
-              questions={questionnaireQuestions}
-              clarification={questionnaireClarification}
-              onComplete={handleComplete}
-              showProgressBar
-            />
+          <div className="mt-10 relative">
+            <div className={result && isSubmitting ? 'pointer-events-none opacity-30 blur-[1px]' : ''}>
+              <Questionnaire
+                questions={questionnaireQuestions}
+                clarification={questionnaireClarification}
+                onComplete={handleComplete}
+                showProgressBar
+              />
+            </div>
+            {result && isSubmitting && (
+              <div className="pointer-events-auto absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[32px] bg-slate-950/80 p-8 text-center text-white space-y-3">
+                <p className="text-lg font-semibold">Guardando tu aplicación...</p>
+                <p className="text-sm text-slate-200">
+                  Estamos enviando tus respuestas. No cierres esta pestaña hasta que terminemos.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* <div className="mt-16 space-y-4">
@@ -128,16 +139,9 @@ export function ContactForm() {
             <VideoCompressionDebugger />
           </div> */}
 
-          {result && !showSuccess && (
-            <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10 space-y-3">
-              {isSubmitting && (
-                <p className="text-sm text-amber-200">
-                  Guardando tu aplicación... mantené esta pestaña abierta unos segundos.
-                </p>
-              )}
-              {submissionError && (
-                <p className="text-sm font-semibold text-red-300">{submissionError}</p>
-              )}
+          {result && !showSuccess && submissionError && (
+            <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10">
+              <p className="text-sm font-semibold text-red-300">{submissionError}</p>
             </div>
           )}
         </>

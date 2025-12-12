@@ -114,7 +114,7 @@ export interface QuestionnaireResult {
 
 export interface QuestionnaireProps {
   questions: QuestionnaireQuestion[]
-  onComplete: (result: QuestionnaireResult) => void
+  onComplete: (result: QuestionnaireResult) => void | Promise<void>
   theme?: QuestionnaireTheme
   allowSkip?: boolean
   showProgressBar?: boolean

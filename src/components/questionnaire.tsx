@@ -353,6 +353,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [error, setError] = useState<string | null>(null)
     const [isDisabled, setIsDisabled] = useState(false)
     const [isProcessingFile, setIsProcessingFile] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [isCaptchaSatisfied, setIsCaptchaSatisfied] = useState(false)
     const [captchaScore, setCaptchaScore] = useState<number | null>(null)
     const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
@@ -453,6 +454,9 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     }, [currentQuestionIndex, showClarification, totalQuestions])
 
     const handleAutocomplete = useCallback(() => {
+      if (isSubmitting) {
+        return
+      }
       const autoAnswers = buildAutocompleteAnswers(questions)
       setAnswers((prev) => ({
         ...prev,
@@ -462,13 +466,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       setError(null)
       // eslint-disable-next-line no-console
       console.info('[Questionnaire][debug-autocomplete]', autoAnswers)
-    }, [questions])
+    }, [isSubmitting, questions])
 
     const disableButton = (): void => {
       setIsDisabled(true)
     }
 
     const handleStartQuestions = (): void => {
+      if (isSubmitting) {
+        return
+      }
       setShowClarification(false)
     }
 
@@ -489,25 +496,28 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     }, [currentQuestion?.id, showReturnToFinalShortcut])
 
     const handleJumpToVideoQuestion = useCallback(() => {
-      if (videoQuestionIndex < 0) {
+      if (videoQuestionIndex < 0 || isSubmitting) {
         return
       }
       setShowReturnToFinalShortcut(true)
       setCurrentQuestionIndex(videoQuestionIndex)
       setError(null)
-    }, [setCurrentQuestionIndex, setError, videoQuestionIndex])
+    }, [isSubmitting, setCurrentQuestionIndex, setError, videoQuestionIndex])
 
     const handleReturnToFinalStep = useCallback(() => {
-      if (totalQuestions <= 0) {
+      if (totalQuestions <= 0 || isSubmitting) {
         return
       }
       setShowReturnToFinalShortcut(false)
       setCurrentQuestionIndex(Math.max(totalQuestions - 1, 0))
       setError(null)
-    }, [setCurrentQuestionIndex, setError, totalQuestions])
+    }, [isSubmitting, setCurrentQuestionIndex, setError, totalQuestions])
 
     const handleAnswerSelect = useCallback(
       (answer: QuestionnaireAnswer) => {
+        if (isSubmitting) {
+          return
+        }
         const question = visibleQuestions[currentQuestionIndex]
         if (!question) {
           return
@@ -523,11 +533,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         }))
         setError(null)
       },
-      [currentQuestionIndex, visibleQuestions],
+      [currentQuestionIndex, isSubmitting, visibleQuestions],
     )
 
     const handleInputChange = useCallback(
       (questionId: string, value: string, fieldId?: string) => {
+        if (isSubmitting) {
+          return
+        }
         setAnswers((prev) => {
           if (fieldId) {
             const existing = prev[questionId]
@@ -572,11 +585,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         })
         setError(null)
       },
-      [],
+      [isSubmitting],
     )
 
     const handleMultiSelect = useCallback(
       (questionId: string, answer: QuestionnaireAnswer) => {
+        if (isSubmitting) {
+          return
+        }
         setAnswers((prev) => {
           const existingSelections = prev[questionId]?.selections ?? []
           const isSelected = existingSelections.some((item) => item.id === answer.id)
@@ -596,11 +612,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         })
         setError(null)
       },
-      [],
+      [isSubmitting],
     )
 
     const handleFileChange = useCallback(
       (question: QuestionnaireQuestion, event: ChangeEvent<HTMLInputElement>) => {
+        if (isSubmitting) {
+          return
+        }
         const files = event.target.files ? Array.from(event.target.files) : []
         const limitedFiles =
           question.maxFiles && files.length > question.maxFiles
@@ -618,11 +637,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         }))
         setError(null)
       },
-      [],
+      [isSubmitting],
     )
 
     const handleVideoCompressionComplete = useCallback(
       (questionId: string, payload: VideoCompressionPayload) => {
+        if (isSubmitting) {
+          return
+        }
         setAnswers((prev) => ({
           ...prev,
           [questionId]: {
@@ -636,17 +658,20 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         }))
         setError(null)
       },
-      [],
+      [isSubmitting],
     )
 
     const handleRemoveFileAnswer = useCallback((questionId: string) => {
+      if (isSubmitting) {
+        return
+      }
       setAnswers((prev) => {
         const updated = { ...prev }
         delete updated[questionId]
         return updated
       })
       setError(null)
-    }, [])
+    }, [isSubmitting])
 
     const attemptCaptchaValidation = useCallback(async (): Promise<string | null> => {
       resetRecaptchaError()
@@ -665,6 +690,9 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
     // Navega a la siguiente pregunta o finaliza el cuestionario
     const handleNext = useCallback(async () => {
+      if (isSubmitting) {
+        return
+      }
       const question = visibleQuestions[currentQuestionIndex]
       if (!question) {
         return
@@ -899,22 +927,38 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         recaptchaToken: effectiveRecaptchaToken,
       }
 
-      clearState()
+      setIsSubmitting(true)
       disableButton()
-      onComplete(result)
-      setIsDisabled(false)
+      try {
+        const maybePromise = onComplete(result)
+        if (maybePromise && typeof (maybePromise as Promise<unknown>).then === 'function') {
+          await maybePromise
+        }
+        clearState()
+      } catch (submissionError) {
+        const message =
+          submissionError instanceof Error && submissionError.message
+            ? submissionError.message
+            : 'No pudimos enviar el formulario. Intentá nuevamente.'
+        setError(message)
+        return
+      } finally {
+        setIsSubmitting(false)
+        setIsDisabled(false)
+      }
       setIsCaptchaSatisfied(false)
       setCaptchaScore(null)
       setRecaptchaToken(null)
     }, [
       allowSkip,
       answers,
+      attemptCaptchaValidation,
       captchaScore,
       clearState,
       currentQuestionIndex,
       isCaptchaSatisfied,
-      attemptCaptchaValidation,
       isQuestionVisible,
+      isSubmitting,
       onComplete,
       questions,
       recaptchaToken,
@@ -924,14 +968,20 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
 
     // Navega a la pregunta anterior
     const handlePrevious = useCallback(() => {
+      if (isSubmitting) {
+        return
+      }
       if (currentQuestionIndex > 0) {
         setCurrentQuestionIndex((prev) => prev - 1)
         setError(null)
       }
-    }, [currentQuestionIndex])
+    }, [currentQuestionIndex, isSubmitting])
 
     // Funciones para control externo
     const handleExternalNext = useCallback(() => {
+      if (isSubmitting) {
+        return
+      }
       if (onNext) {
         onNext()
         return
@@ -942,15 +992,18 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       } else {
         void handleNext()
       }
-    }, [handleNext, onNext, showClarification])
+    }, [handleNext, isSubmitting, onNext, showClarification])
 
     const handleExternalPrevious = useCallback(() => {
+      if (isSubmitting) {
+        return
+      }
       if (onPrevious) {
         onPrevious()
       } else {
         handlePrevious()
       }
-    }, [handlePrevious, onPrevious])
+    }, [handlePrevious, isSubmitting, onPrevious])
 
     // Exponer funciones para controlar el cuestionario desde fuera
     useImperativeHandle(
@@ -959,8 +1012,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         handleNext: handleExternalNext,
         handlePrevious: handleExternalPrevious,
         handleAutocomplete,
-        canGoPrevious: currentQuestionIndex > 0 && !showClarification,
-        canGoNext: Boolean(currentQuestion) && !isDisabled && !isProcessingFile && !currentAnswerBlocks,
+        canGoPrevious: currentQuestionIndex > 0 && !showClarification && !isSubmitting,
+        canGoNext:
+          Boolean(currentQuestion) &&
+          !isDisabled &&
+          !isProcessingFile &&
+          !currentAnswerBlocks &&
+          !isSubmitting,
         isLastQuestion,
         currentQuestionIndex,
         totalQuestions,
@@ -974,6 +1032,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         handleExternalNext,
         handleExternalPrevious,
         isDisabled,
+        isSubmitting,
         isProcessingFile,
         isLastQuestion,
         totalQuestions,
@@ -1154,7 +1213,8 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-white/30 bg-white/5 text-xs text-white hover:bg-white/15"
+                className="w-full border-white/30 bg-white/5 text-xs text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isProcessingFile || isSubmitting}
                 onClick={handleReturnToFinalStep}
               >
                 Volver al final
@@ -1375,10 +1435,12 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       !currentQuestion ||
       isDisabled ||
       isProcessingFile ||
+      isSubmitting ||
       currentAnswerBlocks ||
       (isLastQuestion && isRecaptchaVerifying)
 
-    const isPrimaryActionLoading = isLastQuestion && (isRecaptchaVerifying || isDisabled)
+    const isPrimaryActionLoading =
+      isLastQuestion && (isRecaptchaVerifying || isDisabled || isSubmitting)
 
     const primaryButtonClass = cn(
       'w-32 font-semibold text-white transition focus-visible:ring-2 focus-visible:ring-red-400 flex items-center justify-center gap-2',
@@ -1507,7 +1569,8 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                         <Button
                           type="button"
                           variant="outline"
-                          className="shrink-0 border-white/30 bg-white/5 text-xs text-white hover:bg-white/15"
+                          className="shrink-0 border-white/30 bg-white/5 text-xs text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isProcessingFile || isSubmitting}
                           onClick={handleJumpToVideoQuestion}
                         >
                           Ir a la pregunta del video
@@ -1538,6 +1601,11 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                         {captchaScore !== null ? ` (score ${captchaScore.toFixed(2)})` : ''}.
                       </p>
                     )}
+                    {isSubmitting && (
+                      <p className="text-center text-xs text-slate-200">
+                        Enviando tus respuestas... No cierres esta pestaña.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1547,7 +1615,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                   <Button
                     variant="outline"
                     onClick={handleExternalPrevious}
-                    disabled={currentQuestionIndex === 0}
+                    disabled={currentQuestionIndex === 0 || isSubmitting}
                     className="w-32 border-white/30 bg-white/5 text-white hover:bg-white/15 hover:text-white disabled:opacity-50"
                   >
                     {QUESTIONNAIRE_MESSAGES.previous}

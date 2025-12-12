@@ -20,13 +20,13 @@ export async function submitQuestionnaireApplication(
   payload: QuestionnaireResult,
 ): Promise<QuestionnaireSubmissionResponse> {
   const formData = buildFormCuerpoFitFormData(payload)
-  const { dto } = mapQuestionnaireResultToDto(payload)
+  // const { dto } = mapQuestionnaireResultToDto(payload)
   // eslint-disable-next-line no-console
-  console.log('[Questionnaire] DTO listo para enviar:', dto)
+  // console.log(' DTO listo para enviar:', dto)
 
   if (!CUERPO_FIT_ENDPOINT) {
     throw new Error(
-      '[Questionnaire] VITE_BASE_API no está definido. No se puede enviar el formulario.',
+      ' VITE_BASE_API no está definido. No se puede enviar el formulario.',
     )
   }
 
@@ -38,16 +38,16 @@ export async function submitQuestionnaireApplication(
     })
   } catch (networkError) {
     throw new Error(
-      `[Questionnaire] Error de red al enviar formulario: ${
+      ` Error de red al enviar formulario: ${
         (networkError as Error).message ?? 'Error desconocido'
       }`,
     )
   }
-  console.log( '[Questionnaire] Response:', response)
+  console.log( ' Response:', response)
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '')
     throw new Error(
-      `[Questionnaire] Error al enviar FormData (${response.status}): ${errorBody}`,
+      ` Error al enviar FormData (${response.status}): ${errorBody}`,
     )
   }
 
