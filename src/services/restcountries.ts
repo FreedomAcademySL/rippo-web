@@ -20,6 +20,59 @@ const COUNTRIES_CACHE_KEY = 'ripo:countries:v1'
 const CALLING_CODES_CACHE_KEY = 'ripo:callingCodes:v1'
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 // 24 horas
 
+const FALLBACK_COUNTRIES: QuestionnaireSelectOption[] = [
+  'Argentina',
+  'Bolivia',
+  'Brasil',
+  'Chile',
+  'Colombia',
+  'Costa Rica',
+  'Cuba',
+  'Ecuador',
+  'El Salvador',
+  'Guatemala',
+  'Honduras',
+  'México',
+  'Nicaragua',
+  'Panamá',
+  'Paraguay',
+  'Perú',
+  'Puerto Rico',
+  'República Dominicana',
+  'Uruguay',
+  'Venezuela',
+  'España',
+  'Otros',
+].map((country) => ({
+  label: country,
+  value: country,
+}))
+
+const FALLBACK_CALLING_CODES: QuestionnaireSelectOption[] = [
+  { label: '+54 (Argentina)', value: '+54' },
+  { label: '+591 (Bolivia)', value: '+591' },
+  { label: '+55 (Brasil)', value: '+55' },
+  { label: '+56 (Chile)', value: '+56' },
+  { label: '+57 (Colombia)', value: '+57' },
+  { label: '+506 (Costa Rica)', value: '+506' },
+  { label: '+53 (Cuba)', value: '+53' },
+  { label: '+593 (Ecuador)', value: '+593' },
+  { label: '+503 (El Salvador)', value: '+503' },
+  { label: '+502 (Guatemala)', value: '+502' },
+  { label: '+504 (Honduras)', value: '+504' },
+  { label: '+52 (México)', value: '+52' },
+  { label: '+505 (Nicaragua)', value: '+505' },
+  { label: '+507 (Panamá)', value: '+507' },
+  { label: '+595 (Paraguay)', value: '+595' },
+  { label: '+51 (Perú)', value: '+51' },
+  { label: '+1787 (Puerto Rico)', value: '+1787' },
+  { label: '+1809 (República Dominicana)', value: '+1809' },
+  { label: '+598 (Uruguay)', value: '+598' },
+  { label: '+58 (Venezuela)', value: '+58' },
+  { label: '+34 (España)', value: '+34' },
+  { label: 'Otros', value: 'Otros' },
+]
+
 interface CachedPayload<T> {
   timestamp: number
   data: T
@@ -122,6 +175,14 @@ const normalizeCallingCodes = (
   return Array.from(codesMap.values()).sort((a, b) => collator.compare(a.label, b.label))
 }
 
+const withFallback = (
+  countries?: QuestionnaireSelectOption[] | null,
+  callingCodes?: QuestionnaireSelectOption[] | null,
+): RestCountriesData => ({
+  countries: countries?.length ? countries : FALLBACK_COUNTRIES,
+  callingCodes: callingCodes?.length ? callingCodes : FALLBACK_CALLING_CODES,
+})
+
 export interface RestCountriesData {
   countries: QuestionnaireSelectOption[]
   callingCodes: QuestionnaireSelectOption[]
@@ -141,10 +202,7 @@ export const loadRestCountriesData = async (): Promise<RestCountriesData> => {
   }
 
   if (!isBrowser()) {
-    return {
-      countries: cachedCountries ?? [],
-      callingCodes: cachedCallingCodes ?? [],
-    }
+    return withFallback(cachedCountries, cachedCallingCodes)
   }
 
   try {
@@ -157,20 +215,20 @@ export const loadRestCountriesData = async (): Promise<RestCountriesData> => {
     const countries = normalizeCountries(data)
     const callingCodes = normalizeCallingCodes(data)
 
-    writeToCache(COUNTRIES_CACHE_KEY, countries)
-    writeToCache(CALLING_CODES_CACHE_KEY, callingCodes)
+    if (countries.length && callingCodes.length) {
+      writeToCache(COUNTRIES_CACHE_KEY, countries)
+      writeToCache(CALLING_CODES_CACHE_KEY, callingCodes)
+      return { countries, callingCodes }
+    }
 
-    return { countries, callingCodes }
+    return withFallback(countries, callingCodes)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[RestCountries] Error al obtener datos', error)
-
-    return {
-      countries: cachedCountries ?? [],
-      callingCodes: cachedCallingCodes ?? [],
-    }
+    return withFallback(cachedCountries, cachedCallingCodes)
   }
 }
+
 
 
 
