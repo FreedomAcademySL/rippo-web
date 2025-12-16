@@ -37,7 +37,7 @@ import { VideoUploadField } from '@/components/video-upload-field'
 import type { VideoCompressionPayload } from '@/types/video'
 import { useRecaptchaV3 } from '@/hooks/use-recaptcha-v3'
 import { useQuestionnairePersistence } from '@/hooks/use-questionnaire-persistence'
-import { useRestCountries } from '@/hooks/use-rest-countries'
+import { useRestCountries } from '@/hooks/use-rest-countries' 
 import {
   Select,
   SelectContent,
@@ -698,7 +698,8 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         return
       }
       const answer = answers[question.id]
-      const requiresAnswer = question.required && !allowSkip
+      const isVideoQuestion = question.id === VIDEO_QUESTION_ID
+      const requiresAnswer = question.required && !allowSkip && !isVideoQuestion
       const isFieldQuestion = Boolean(question.fields?.length)
       const textualTypes: QuestionnaireQuestion['type'][] = [
         'text',
@@ -1181,6 +1182,19 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 : question.type === 'date'
                   ? 'date'
                   : 'text'
+          const isDateInput = question.type === 'date'
+          const dateInputProps = isDateInput
+            ? {
+                lang: 'es-419',
+                inputMode: 'none' as const,
+                placeholder: question.placeholder ?? 'dd/mm/yyyy',
+                onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
+                  if (typeof event.target.showPicker === 'function') {
+                    event.target.showPicker()
+                  }
+                },
+              }
+            : {}
 
           return (
             <Input
@@ -1193,6 +1207,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               {...(question.type === 'text'
                 ? { minLength: question.minLength, maxLength: question.maxLength }
                 : {})}
+              {...dateInputProps}
             />
           )
         }

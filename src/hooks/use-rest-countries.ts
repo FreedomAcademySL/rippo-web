@@ -1,79 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 
-import { loadRestCountriesData, type RestCountriesData } from '@/services/restcountries'
-import type { QuestionnaireSelectOption } from '@/types/questionnaire'
+import { CALLING_CODE_OPTIONS, COUNTRY_OPTIONS } from '@/data/country-options'
 
-interface UseRestCountriesState extends RestCountriesData {
+interface UseRestCountriesState {
+  countries: typeof COUNTRY_OPTIONS
+  callingCodes: typeof CALLING_CODE_OPTIONS
   loading: boolean
   error: string | null
 }
 
-const INITIAL_STATE: UseRestCountriesState = {
-  countries: [],
-  callingCodes: [],
-  loading: true,
-  error: null,
-}
-
 export const useRestCountries = (): UseRestCountriesState => {
-  const [state, setState] = useState<UseRestCountriesState>(INITIAL_STATE)
-
-  useEffect(() => {
-    let isMounted = true
-
-    const fetchData = async (): Promise<void> => {
-      try {
-        const data = await loadRestCountriesData()
-        if (!isMounted) {
-          return
-        }
-
-        setState({
-          countries: data.countries ?? [],
-          callingCodes: data.callingCodes ?? [],
-          loading: false,
-          error: null,
-        })
-      } catch (error) {
-        if (!isMounted) {
-          return
-        }
-
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : 'No pudimos cargar los países.',
-        }))
-      }
-    }
-
-    fetchData()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  return state
+  return useMemo(
+    () => ({
+      countries: COUNTRY_OPTIONS,
+      callingCodes: CALLING_CODE_OPTIONS,
+      loading: false,
+      error: null,
+    }),
+    [],
+  )
 }
-
-export type { QuestionnaireSelectOption }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
