@@ -698,8 +698,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         return
       }
       const answer = answers[question.id]
-      const isVideoQuestion = question.id === VIDEO_QUESTION_ID
-      const requiresAnswer = question.required && !allowSkip && !isVideoQuestion
+      const requiresAnswer = question.required && !allowSkip
       const isFieldQuestion = Boolean(question.fields?.length)
       const textualTypes: QuestionnaireQuestion['type'][] = [
         'text',
@@ -1182,19 +1181,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 : question.type === 'date'
                   ? 'date'
                   : 'text'
-          const isDateInput = question.type === 'date'
-          const dateInputProps = isDateInput
-            ? {
-                lang: 'es-419',
-                inputMode: 'none' as const,
-                placeholder: question.placeholder ?? 'dd/mm/yyyy',
-                onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
-                  if (typeof event.target.showPicker === 'function') {
-                    event.target.showPicker()
-                  }
-                },
-              }
-            : {}
 
           return (
             <Input
@@ -1207,7 +1193,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               {...(question.type === 'text'
                 ? { minLength: question.minLength, maxLength: question.maxLength }
                 : {})}
-              {...dateInputProps}
             />
           )
         }

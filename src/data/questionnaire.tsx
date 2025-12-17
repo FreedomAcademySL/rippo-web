@@ -1,4 +1,4 @@
-import type { QuestionnaireQuestion } from '@/types/questionnaire'
+import type { QuestionnaireQuestion, QuestionnaireSelectOption } from '@/types/questionnaire'
 import {
   Addiction,
   AddictionFrequency,
@@ -26,6 +26,57 @@ export const questionnaireClarification = (
     </p>
   </div>
 )
+
+const LATAM_COUNTRIES: QuestionnaireSelectOption[] = [
+  { value: 'Argentina', label: 'Argentina' },
+  { value: 'Bolivia', label: 'Bolivia' },
+  { value: 'Brasil', label: 'Brasil' },
+  { value: 'Chile', label: 'Chile' },
+  { value: 'Colombia', label: 'Colombia' },
+  { value: 'Costa Rica', label: 'Costa Rica' },
+  { value: 'Cuba', label: 'Cuba' },
+  { value: 'República Dominicana', label: 'República Dominicana' },
+  { value: 'Ecuador', label: 'Ecuador' },
+  { value: 'El Salvador', label: 'El Salvador' },
+  { value: 'Guatemala', label: 'Guatemala' },
+  { value: 'Honduras', label: 'Honduras' },
+  { value: 'México', label: 'México' },
+  { value: 'Nicaragua', label: 'Nicaragua' },
+  { value: 'Panamá', label: 'Panamá' },
+  { value: 'Paraguay', label: 'Paraguay' },
+  { value: 'Perú', label: 'Perú' },
+  { value: 'Puerto Rico', label: 'Puerto Rico' },
+  { value: 'Uruguay', label: 'Uruguay' },
+  { value: 'Venezuela', label: 'Venezuela' },
+  { value: 'España', label: 'España' },
+  { value: 'Otros', label: 'Otros' },
+]
+
+const LATAM_CALLING_CODES: QuestionnaireSelectOption[] = [
+  { value: '+54', label: '+54 (Argentina)' },
+  { value: '+591', label: '+591 (Bolivia)' },
+  { value: '+55', label: '+55 (Brasil)' },
+  { value: '+56', label: '+56 (Chile)' },
+  { value: '+57', label: '+57 (Colombia)' },
+  { value: '+506', label: '+506 (Costa Rica)' },
+  { value: '+53', label: '+53 (Cuba)' },
+  { value: '+1', label: '+1 (República Dominicana)' },
+  { value: '+593', label: '+593 (Ecuador)' },
+  { value: '+503', label: '+503 (El Salvador)' },
+  { value: '+502', label: '+502 (Guatemala)' },
+  { value: '+504', label: '+504 (Honduras)' },
+  { value: '+52', label: '+52 (México)' },
+  { value: '+505', label: '+505 (Nicaragua)' },
+  { value: '+507', label: '+507 (Panamá)' },
+  { value: '+595', label: '+595 (Paraguay)' },
+  { value: '+51', label: '+51 (Perú)' },
+  { value: '+1-787', label: '+1 787 (Puerto Rico)' },
+  { value: '+1-939', label: '+1 939 (Puerto Rico)' },
+  { value: '+598', label: '+598 (Uruguay)' },
+  { value: '+58', label: '+58 (Venezuela)' },
+  { value: '+34', label: '+34 (España)' },
+  { value: '+000', label: 'Otro código' },
+]
 
 export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
@@ -578,7 +629,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'select',
     placeholder: 'Seleccioná tu país',
     helperText: 'Podés escribir para buscarlo más rápido.',
-    optionsSource: 'countries',
+    selectOptions: LATAM_COUNTRIES,
   },
   {
     id: 'city',
@@ -651,8 +702,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     required: true,
     type: 'select',
     placeholder: 'Elegí tu prefijo (+54)',
-    helperText: 'Mostramos el signo + para evitar confusiones.',
-    optionsSource: 'callingCodes',
+    helperText: 'Mostramos el signo + para evitar confusiones. Si no ves el tuyo, elegí "Otro código" y contanos en el mensaje final.',
+    selectOptions: LATAM_CALLING_CODES,
   },
   {
     id: 'whatsapp_number',
