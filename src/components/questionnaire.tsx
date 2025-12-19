@@ -9,6 +9,7 @@ import {
   useMemo,
   useEffect,
   startTransition,
+  useRef,
   type JSX,
 } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -38,13 +39,7 @@ import type { VideoCompressionPayload } from '@/types/video'
 import { useRecaptchaV3 } from '@/hooks/use-recaptcha-v3'
 import { useQuestionnairePersistence } from '@/hooks/use-questionnaire-persistence'
 import { useRestCountries } from '@/hooks/use-rest-countries' 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 
 const BLOCKER_MESSAGE = 'Volvé cuando estés listo para retomarlo.'
 const VIDEO_QUESTION_ID = 'video_upload'
@@ -93,6 +88,27 @@ const buildDefaultDateAnswer = (question: QuestionnaireQuestion): string => {
   const dateCopy = new Date(today)
   dateCopy.setFullYear(today.getFullYear() - targetAge)
   return dateCopy.toISOString().split('T')[0]
+}
+
+const DEBUG_SAMPLE_TEXTS: Record<string, string> = {
+  name: 'Camila',
+  lastName: 'Hernández',
+  email: 'camila.hernandez@example.com',
+  birthday: '1994-08-15',
+  height: '168',
+  weight: '63.5',
+  job: 'Product Manager',
+  goal: 'Definir abdomen, ganar fuerza y mantener energía',
+  whyGoal: 'Quiero sentirme sana, fuerte y con más energía para mi familia',
+  final_message: 'Estoy lista para comprometerme con el proceso y tus indicaciones.',
+  city: 'Palermo',
+  country: 'Argentina',
+  instagram: '@camila.fit',
+  whatsapp_number: '1122334455',
+  whatsapp_country_code: '+54',
+  referral_detail: 'Te vi en Instagram y me encantó tu energía.',
+  supplement: 'Omega 3',
+  supplement_amount: '2',
 }
 
 const buildAutocompleteAnswers = (
@@ -164,16 +180,31 @@ const buildAutocompleteAnswers = (
       return
     }
 
+    if (question.type === 'select' && question.selectOptions && question.selectOptions.length > 0) {
+      const firstOption = question.selectOptions[0]
+      const sampleValue = DEBUG_SAMPLE_TEXTS[question.id] ?? firstOption.value
+      nextAnswers[question.id] = {
+        id: `${question.id}-${sampleValue}`,
+        text: sampleValue,
+      }
+      return
+    }
+
     nextAnswers[question.id] = {
       id: `${question.id}-${index}`,
-      text:
-        question.type === 'number'
-          ? String(question.min ?? 1)
-          : question.type === 'phone'
-            ? '123456789'
-            : question.type === 'date'
-              ? buildDefaultDateAnswer(question)
-            : question.placeholder ?? 'demo',
+      text: (() => {
+        const sampleText = DEBUG_SAMPLE_TEXTS[question.id]
+        if (question.type === 'number') {
+          return sampleText ?? String(question.min ?? 1)
+        }
+        if (question.type === 'phone') {
+          return sampleText ?? '1122334455'
+        }
+        if (question.type === 'date') {
+          return sampleText ?? buildDefaultDateAnswer(question)
+        }
+        return sampleText ?? question.placeholder ?? 'Respuesta de prueba'
+      })(),
     }
   })
 
@@ -359,6 +390,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
     const [selectFilters, setSelectFilters] = useState<Record<string, string>>({})
     const [showReturnToFinalShortcut, setShowReturnToFinalShortcut] = useState(false)
+    const skipReturnShortcutReset = useRef(false)
     const {
       validate: validateRecaptcha,
       isVerifying: isRecaptchaVerifying,
@@ -490,6 +522,10 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       [storedAnswer],
     )
     useEffect(() => {
+      if (skipReturnShortcutReset.current) {
+        skipReturnShortcutReset.current = false
+        return
+      }
       if (currentQuestion?.id !== VIDEO_QUESTION_ID && showReturnToFinalShortcut) {
         setShowReturnToFinalShortcut(false)
       }
@@ -499,6 +535,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       if (videoQuestionIndex < 0 || isSubmitting) {
         return
       }
+      skipReturnShortcutReset.current = true
       setShowReturnToFinalShortcut(true)
       setCurrentQuestionIndex(videoQuestionIndex)
       setError(null)
@@ -708,7 +745,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         'date',
         'select',
       ]
-
       if (requiresAnswer) {
         if (!answer) {
           setError(QUESTIONNAIRE_MESSAGES.required)
@@ -732,6 +768,9 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           setError(QUESTIONNAIRE_MESSAGES.required)
           return
         } else if (question.type === 'multi-choice' && !(answer.selections?.length)) {
+          setError(QUESTIONNAIRE_MESSAGES.required)
+          return
+        } else if (question.type === 'file' && !(answer.files?.length)) {
           setError(QUESTIONNAIRE_MESSAGES.required)
           return
         }
@@ -804,6 +843,22 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         setCurrentQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1))
         setError(null)
         return
+      }
+
+      if (videoQuestionIndex >= 0) {
+        const videoStoredAnswer = answers[VIDEO_QUESTION_ID]
+        const hasVideoFile = Boolean(videoStoredAnswer?.files?.length)
+        if (!hasVideoFile) {
+          skipReturnShortcutReset.current = true
+          setShowReturnToFinalShortcut(true)
+          if (videoQuestionIndex >= 0) {
+            startTransition(() => {
+              setCurrentQuestionIndex(videoQuestionIndex)
+            })
+          }
+          setError('Antes de enviar, volvé a la pregunta del video y subilo.')
+          return
+        }
       }
 
       let effectiveRecaptchaToken = recaptchaToken
@@ -1101,49 +1156,45 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           : options
 
       return (
-        <div className="space-y-2">
-          <Select
-            value={answer?.text ?? undefined}
-            onValueChange={(value) => handleInputChange(question.id, value)}
-            disabled={isDisabled}
-            onOpenChange={(open) => {
-              if (!open) {
-                resetSelectFilter(question.id)
-              }
+        <div className="space-y-2 w-full block">
+          {showSearch && (
+            <div className="border-b border-white/10 bg-slate-900/95 p-2">
+              <Input
+                value={rawFilterValue}
+                onChange={(event) => handleSelectFilterChange(question.id, event.target.value)}
+                placeholder={
+                  question.optionsSource === 'callingCodes'
+                    ? 'Buscá por código o país (+54 o Argentina)'
+                    : 'Buscá por nombre (Argentina)'
+                }
+                autoFocus
+                className="h-9 w-full bg-slate-900/50 text-sm text-white placeholder:text-slate-400 focus-visible:ring-red-500"
+              />
+            </div>
+          )}
+          <NativeSelect
+            value={answer?.text ?? ''}
+            onChange={(event) => {
+              handleInputChange(question.id, event.target.value)
+              resetSelectFilter(question.id)
             }}
+            disabled={isDisabled || filteredOptions.length === 0}
+            className="w-full block border border-white/10 bg-slate-900/40 text-white placeholder:text-slate-400"
           >
-            <SelectTrigger className="w-full border border-white/10 bg-slate-900/40 text-white placeholder:text-slate-400">
-              <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent className="max-h-72 w-[var(--radix-select-trigger-width)] border border-white/10 bg-slate-900/95 text-white shadow-2xl backdrop-blur-lg">
-              {showSearch && (
-                <div className="sticky top-0 z-10 border-b border-white/10 bg-slate-900/95 p-2">
-                  <Input
-                    value={rawFilterValue}
-                    onChange={(event) => handleSelectFilterChange(question.id, event.target.value)}
-                    placeholder={
-                      question.optionsSource === 'callingCodes'
-                        ? 'Buscá por código o país (+54 o Argentina)'
-                        : 'Buscá por nombre (Argentina)'
-                    }
-                    autoFocus
-                    className="h-9 w-full bg-slate-900/50 text-sm text-white placeholder:text-slate-400 focus-visible:ring-red-500"
-                  />
-                </div>
-              )}
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="p-3 text-sm text-slate-300">
-                  No encontramos opciones que coincidan con “{filterValue}”.
-                </div>
-              )}
-            </SelectContent>
-          </Select>
+            <NativeSelectOption value="" disabled>
+              {placeholder}
+            </NativeSelectOption>
+            {filteredOptions.map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          {filteredOptions.length === 0 && filterValue && (
+            <div className="p-3 text-sm text-slate-300">
+              No encontramos opciones que coincidan con “{filterValue}”.
+            </div>
+          )}
           {isLoading && <p className="text-xs text-slate-300">Cargando opciones...</p>}
           {!isLoading && options.length === 0 && (
             <p className="text-xs text-amber-300">

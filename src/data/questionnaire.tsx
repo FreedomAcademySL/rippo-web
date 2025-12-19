@@ -628,7 +628,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     required: true,
     type: 'select',
     placeholder: 'Seleccioná tu país',
-    helperText: 'Podés escribir para buscarlo más rápido.',
+    helperText: '',
     selectOptions: LATAM_COUNTRIES,
   },
   {

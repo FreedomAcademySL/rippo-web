@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+// import { Button } from '@/components/ui/button'
 import { Questionnaire } from '@/components/questionnaire'
-// import { VideoCompressionDebugger } from '@/components/video-compression-debugger'
 import type { QuestionnaireResult } from '@/types/questionnaire'
+// import { VideoCompressionDebugger } from '@/components/video-compression-debugger'
 import { questionnaireQuestions, questionnaireClarification } from '@/data/questionnaire'
 import { submitQuestionnaireApplication } from '@/services/questionnaire'
 import { ArrowRight, CheckCircle, MessageCircle } from 'lucide-react'
@@ -14,6 +15,8 @@ export function ContactForm() {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null)
   const [submissionWhatsapp, setSubmissionWhatsapp] = useState<string | null>(null)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  // const questionnaireRef = useRef<QuestionnaireRef>(null)
+  // const isDev = import.meta.env.DEV
 
   const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
@@ -70,6 +73,18 @@ export function ContactForm() {
           Contestá las siguientes preguntas <b>con la verdad</b>, para que evalúe si estás listo para empezar tu cambio físico. <br /> Si no estás listo, <b>podés volver cuando lo estés</b>.
         </p>
       </div>
+{/* 
+      {isDev && (
+        <div className="mt-6 flex justify-end">
+          <Button
+            variant="outline"
+            className="text-xs uppercase tracking-[0.4em]"
+            onClick={() => questionnaireRef.current?.handleAutocomplete()}
+          >
+            Cargar datos de prueba
+          </Button>
+        </div>
+      )} */}
 
       {showSuccess ? (
         <div className="relative mt-10 overflow-hidden rounded-[32px] border-6 border-emerald-400 bg-slate-900 p-10 text-white shadow-2xl shadow-emerald-500/20 space-y-6 text-center">
