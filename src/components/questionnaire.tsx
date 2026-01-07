@@ -76,6 +76,20 @@ const normalizeSearchText = (value: string): string =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
+const shouldTrimInputValue = (
+  question: QuestionnaireQuestion | undefined,
+  fieldId?: string,
+): boolean => {
+  if (!question) {
+    return true
+  }
+  if (fieldId) {
+    const field = question.fields?.find((item) => item.id === fieldId)
+    return field?.type !== 'textarea'
+  }
+  return question.type !== 'textarea'
+}
+
 const buildDefaultDateAnswer = (question: QuestionnaireQuestion): string => {
   const today = new Date()
   let targetAge = typeof question.minAge === 'number' ? question.minAge : 25
@@ -578,12 +592,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         if (isSubmitting) {
           return
         }
+        const question = questions.find((item) => item.id === questionId)
+        const shouldTrim = shouldTrimInputValue(question, fieldId)
+        const normalizedValue = shouldTrim ? value.trim() : value
+
         setAnswers((prev) => {
           if (fieldId) {
             const existing = prev[questionId]
             const nextFieldValues = { ...(existing?.fieldValues ?? {}) }
-            if (value) {
-              nextFieldValues[fieldId] = value
+            if (normalizedValue) {
+              nextFieldValues[fieldId] = normalizedValue
             } else {
               delete nextFieldValues[fieldId]
             }
@@ -605,7 +623,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
             }
           }
 
-          if (!value) {
+          if (!normalizedValue) {
             const updated = { ...prev }
             delete updated[questionId]
             return updated
@@ -614,15 +632,15 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           return {
             ...prev,
             [questionId]: {
-              id: value || questionId,
-              text: value,
+              id: normalizedValue || questionId,
+              text: normalizedValue,
               blocksProgress: false,
             },
           }
         })
         setError(null)
       },
-      [isSubmitting],
+      [isSubmitting, questions],
     )
 
     const handleMultiSelect = useCallback(

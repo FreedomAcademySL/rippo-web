@@ -521,8 +521,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     type: 'single-choice',
     answers: [
       { id: 'train_gym', text: 'Gym', value: 3 },
-      { id: 'train_home_none', text: 'Casa sin material', value: 1 },
-      { id: 'train_home_weights', text: 'Casa con pesos libres', value: 2 },
+      { id: 'train_home_none', text: 'Casa SIN material', value: 1 },
+      { id: 'train_home_weights', text: 'Casa CON material', value: 2 },
       { id: 'train_home_multigym', text: 'Casa con Multigym', value: 2 },
     ],
   },
@@ -679,7 +679,8 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     maxLength: 254,
     placeholder: 'ripo@email.com',
     helperText: 'Usá el mail que revisás todos los días.',
-    pattern: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$',
+    pattern:
+      "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
     inputMode: 'email',
   },
   {
