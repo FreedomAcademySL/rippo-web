@@ -315,24 +315,65 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
         // #endregion agent log
         return payload
       } catch (conversionError) {
-        setStatus('error')
         const message =
           conversionError instanceof Error
             ? conversionError.message
             : 'Ocurrió un error al comprimir el video.'
-        setError(message)
         // #region agent log
         sendDebugLog({
-        runId: 'postfix1',
+          runId: 'postfix1',
           hypothesisId: 'H2',
-          location: 'use-video-compressor.ts:compress-error',
-          message: 'compress error',
+          location: 'use-video-compressor.ts:compress-error-fallback',
+          message: 'compress error - using original file as fallback',
           data: {
             errorMessage: message,
+            fileName: file.name,
+            fileSize: file.size,
           },
         })
         // #endregion agent log
-        throw conversionError
+
+        // Only allow fallback for actual video files
+        const isVideo =
+          file.type.startsWith('video/') ||
+          /\.(mp4|mov|mkv|webm|avi|m4v|wmv|flv|3gp)$/i.test(file.name)
+
+        if (!isVideo) {
+          setStatus('error')
+          setError('El archivo seleccionado no es un video válido.')
+          throw new Error('El archivo seleccionado no es un video válido.')
+        }
+
+        // Fallback: use original file without compression
+        try {
+          const fallbackBuffer = await file.arrayBuffer()
+          const fallbackBlob = new Blob([fallbackBuffer], { type: file.type })
+          const fallbackMetadata: VideoCompressionMetadata = {
+            originalName: file.name,
+            originalSize: file.size,
+            compressedSize: file.size,
+            compressionPercent: 100,
+            mimeType: file.type,
+            startedAt: Date.now(),
+            finishedAt: Date.now(),
+          }
+          const fallbackPayload: VideoCompressionPayload = {
+            file,
+            originalFile: file,
+            blob: fallbackBlob,
+            buffer: fallbackBuffer,
+            metadata: fallbackMetadata,
+          }
+
+          setMetadata(fallbackMetadata)
+          setResult(fallbackPayload)
+          setStatus('success')
+          return fallbackPayload
+        } catch {
+          setStatus('error')
+          setError('No se pudo procesar el archivo de video.')
+          throw new Error('No se pudo procesar el archivo de video.')
+        }
       } finally {
         await cleanupConversion()
       }
