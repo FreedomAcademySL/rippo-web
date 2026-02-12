@@ -251,6 +251,9 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
           }
         }
 
+        // SIMULATED ERROR - remove this line to restore normal compression
+        throw new Error('Cannot execute this conversion because its output configuration is invalid. Due to discarded tracks, this conversion cannot be executed.')
+
         await conversion.execute()
 
         const buffer = output.target.buffer
