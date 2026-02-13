@@ -592,16 +592,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         if (isSubmitting) {
           return
         }
-        const question = questions.find((item) => item.id === questionId)
-        const shouldTrim = shouldTrimInputValue(question, fieldId)
-        const normalizedValue = shouldTrim ? value.trim() : value
 
         setAnswers((prev) => {
           if (fieldId) {
             const existing = prev[questionId]
             const nextFieldValues = { ...(existing?.fieldValues ?? {}) }
-            if (normalizedValue) {
-              nextFieldValues[fieldId] = normalizedValue
+            if (value) {
+              nextFieldValues[fieldId] = value
             } else {
               delete nextFieldValues[fieldId]
             }
@@ -623,7 +620,7 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
             }
           }
 
-          if (!normalizedValue) {
+          if (!value) {
             const updated = { ...prev }
             delete updated[questionId]
             return updated
@@ -632,15 +629,15 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           return {
             ...prev,
             [questionId]: {
-              id: normalizedValue || questionId,
-              text: normalizedValue,
+              id: value || questionId,
+              text: value,
               blocksProgress: false,
             },
           }
         })
         setError(null)
       },
-      [isSubmitting, questions],
+      [isSubmitting],
     )
 
     const handleMultiSelect = useCallback(
@@ -912,10 +909,14 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 if (!fieldValue) {
                   return null
                 }
+                const trimmed = shouldTrimInputValue(questionEntry, field.id)
+                  ? fieldValue.trim()
+                  : fieldValue
+                if (!trimmed) return null
                 return {
                   id: questionEntry.id,
                   fieldId: field.id,
-                  value: fieldValue,
+                  value: trimmed,
                 }
               })
               .filter(
@@ -965,10 +966,15 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
           }
 
           if (textualTypes.includes(questionEntry.type ?? 'text')) {
+            const rawText = stored.text ?? ''
+            const textValue = shouldTrimInputValue(questionEntry)
+              ? rawText.trim()
+              : rawText
+            if (!textValue) return acc
             acc[questionEntry.id] = [
               {
                 id: questionEntry.id,
-                value: stored.text ?? '',
+                value: textValue,
               },
             ]
             return acc
