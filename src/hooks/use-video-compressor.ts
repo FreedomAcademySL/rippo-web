@@ -345,35 +345,26 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
         }
 
         // Fallback: use original file without compression
-        try {
-          const fallbackBuffer = await file.arrayBuffer()
-          const fallbackBlob = new Blob([fallbackBuffer], { type: file.type })
-          const fallbackMetadata: VideoCompressionMetadata = {
-            originalName: file.name,
-            originalSize: file.size,
-            compressedSize: file.size,
-            compressionPercent: 100,
-            mimeType: file.type,
-            startedAt: Date.now(),
-            finishedAt: Date.now(),
-          }
-          const fallbackPayload: VideoCompressionPayload = {
-            file,
-            originalFile: file,
-            blob: fallbackBlob,
-            buffer: fallbackBuffer,
-            metadata: fallbackMetadata,
-          }
-
-          setMetadata(fallbackMetadata)
-          setResult(fallbackPayload)
-          setStatus('success')
-          return fallbackPayload
-        } catch {
-          setStatus('error')
-          setError('No se pudo procesar el archivo de video.')
-          throw new Error('No se pudo procesar el archivo de video.')
+        const mimeType = file.type || 'video/mp4'
+        const fallbackMetadata: VideoCompressionMetadata = {
+          originalName: file.name,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionPercent: 100,
+          mimeType,
+          startedAt: Date.now(),
+          finishedAt: Date.now(),
         }
+        const fallbackPayload: VideoCompressionPayload = {
+          file,
+          originalFile: file,
+          metadata: fallbackMetadata,
+        }
+
+        setMetadata(fallbackMetadata)
+        setResult(fallbackPayload)
+        setStatus('success')
+        return fallbackPayload
       } finally {
         await cleanupConversion()
       }

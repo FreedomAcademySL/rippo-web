@@ -21,8 +21,8 @@ export interface VideoCompressionMetadata {
 export interface VideoCompressionPayload {
   file: File
   originalFile: File
-  blob: Blob
-  buffer: ArrayBuffer
+  blob?: Blob
+  buffer?: ArrayBuffer
   metadata: VideoCompressionMetadata
 }
 
