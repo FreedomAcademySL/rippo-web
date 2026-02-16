@@ -315,24 +315,68 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
         // #endregion agent log
         return payload
       } catch (conversionError) {
-        setStatus('error')
         const message =
           conversionError instanceof Error
             ? conversionError.message
             : 'Ocurrió un error al comprimir el video.'
-        setError(message)
         // #region agent log
         sendDebugLog({
-        runId: 'postfix1',
+          runId: 'postfix1',
           hypothesisId: 'H2',
-          location: 'use-video-compressor.ts:compress-error',
-          message: 'compress error',
+          location: 'use-video-compressor.ts:compress-error-fallback',
+          message: 'compress error - using original file as fallback',
           data: {
             errorMessage: message,
+            fileName: file.name,
+            fileSize: file.size,
           },
         })
         // #endregion agent log
-        throw conversionError
+
+        // Only allow fallback for actual video files
+        const isVideo =
+          file.type.startsWith('video/') ||
+          /\.(mp4|mov|mkv|webm|avi|m4v|wmv|flv|3gp)$/i.test(file.name)
+
+        if (!isVideo) {
+          setStatus('error')
+          setError('El archivo seleccionado no es un video válido.')
+          throw new Error('El archivo seleccionado no es un video válido.')
+        }
+
+        const MAX_FALLBACK_SIZE = 128 * 1024 * 1024 // 128 MB (matches backend limit)
+        if (file.size > MAX_FALLBACK_SIZE) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+          setStatus('error')
+          setError(
+            `El video pesa ${sizeMB} MB y no pudo ser comprimido. El límite es 128 MB.`,
+          )
+          throw new Error(
+            `Uncompressed fallback rejected: file size ${sizeMB} MB exceeds 128 MB limit.`,
+          )
+        }
+
+        // Fallback: use original file without compression
+        const mimeType = file.type || 'video/mp4'
+        const fallbackMetadata: VideoCompressionMetadata = {
+          originalName: file.name,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionPercent: 100,
+          mimeType,
+          startedAt: Date.now(),
+          finishedAt: Date.now(),
+        }
+        const fallbackPayload: VideoCompressionPayload = {
+          file,
+          originalFile: file,
+          metadata: fallbackMetadata,
+        }
+
+        setMetadata(fallbackMetadata)
+        setResult(fallbackPayload)
+        setStatus('success')
+        return fallbackPayload
       } finally {
         await cleanupConversion()
       }
