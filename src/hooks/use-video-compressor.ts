@@ -344,6 +344,18 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
           throw new Error('El archivo seleccionado no es un video válido.')
         }
 
+        const MAX_FALLBACK_SIZE = 128 * 1024 * 1024 // 128 MB (matches backend limit)
+        if (file.size > MAX_FALLBACK_SIZE) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+          setStatus('error')
+          setError(
+            `El video pesa ${sizeMB} MB y no pudo ser comprimido. El límite es 128 MB.`,
+          )
+          throw new Error(
+            `Uncompressed fallback rejected: file size ${sizeMB} MB exceeds 128 MB limit.`,
+          )
+        }
+
         // Fallback: use original file without compression
         const mimeType = file.type || 'video/mp4'
         const fallbackMetadata: VideoCompressionMetadata = {
