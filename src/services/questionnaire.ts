@@ -5,7 +5,7 @@ import { buildFormCuerpoFitFormData,  } from '@/services/questionnaire-mapper'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API
 const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/cuerpo-fit` : ''
-const FALLBACK_WHATSAPP = '5491172468898'
+const FALLBACK_WHATSAPP = '5491155873035'
 
 export interface QuestionnaireSubmissionResponse {
   whatsapp: string
