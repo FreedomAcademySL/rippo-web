@@ -31,7 +31,7 @@ export function ContactForm() {
 
     try {
       const response = await submitQuestionnaireApplication(payload)
-      const whatsappNumber = response.whatsapp || '5491172468898'
+      const whatsappNumber = response.whatsapp || '5491155873035'
       setSubmissionWhatsapp(whatsappNumber)
       setSubmissionMessage(
         '¡Todo listo! El siguiente paso es contactar a Ripo por WhatsApp y empezar tu transformación.',
@@ -53,7 +53,7 @@ export function ContactForm() {
       : '_____'
 
   const whatsappMessage = `Ripo, ya me inscribí en tu página web. Mi nombre es ${fullName}. ¿Como seguimos?`
-  const whatsappTarget = submissionWhatsapp ?? '5491172468898'
+  const whatsappTarget = submissionWhatsapp ?? '5491155873035'
   const displayWhatsapp = submissionWhatsapp
     ? submissionWhatsapp.startsWith('+')
       ? submissionWhatsapp
