@@ -1,40 +1,39 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-// import { Button } from '@/components/ui/button'
+import { useState, useCallback, useRef } from 'react'
+import { Button } from '@/components/ui/button'
 import { Questionnaire } from '@/components/questionnaire'
+import type { QuestionnaireRef } from '@/components/questionnaire'
 import type { QuestionnaireResult } from '@/types/questionnaire'
-// import { VideoCompressionDebugger } from '@/components/video-compression-debugger'
 import { questionnaireQuestions, questionnaireClarification } from '@/data/questionnaire'
 import { submitQuestionnaireApplication } from '@/services/questionnaire'
+import { buildContactUrl, getContactAppName, getDisplayNumber } from '@/utils/contact'
 import { ArrowRight, CheckCircle, MessageCircle } from 'lucide-react'
 
 export function ContactForm() {
   const [result, setResult] = useState<QuestionnaireResult | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null)
-  const [submissionWhatsapp, setSubmissionWhatsapp] = useState<string | null>(null)
+  const [submissionSuccess, setSubmissionSuccess] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
-  // const questionnaireRef = useRef<QuestionnaireRef>(null)
-  // const isDev = import.meta.env.DEV
+  const questionnaireRef = useRef<QuestionnaireRef>(null)
+  const isDev = import.meta.env.DEV
 
   const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
-    // Dummy output mientras esperamos la API real
     // eslint-disable-next-line no-console
     console.log('Formulario enviado (dummy):', payload)
 
     setIsSubmitting(true)
     setSubmissionMessage(null)
     setSubmissionError(null)
-    setSubmissionWhatsapp(null)
+    setSubmissionSuccess(false)
 
     try {
-      const response = await submitQuestionnaireApplication(payload)
-      const whatsappNumber = response.whatsapp || '5491155873035'
-      setSubmissionWhatsapp(whatsappNumber)
+      await submitQuestionnaireApplication(payload)
+      setSubmissionSuccess(true)
       setSubmissionMessage(
-        '¡Todo listo! El siguiente paso es contactar a Ripo por WhatsApp y empezar tu transformación.',
+        `¡Todo listo! El siguiente paso es contactar a Ripo por ${getContactAppName()} y empezar tu transformación.`,
       )
     } catch (error) {
       setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
@@ -44,36 +43,28 @@ export function ContactForm() {
     }
   }, [])
 
-  const showSuccess = Boolean(submissionWhatsapp)
+  const firstName =
+    typeof result?.answers?.name?.[0]?.value === 'string' &&
+      result.answers.name[0].value.trim().length > 0
+      ? result.answers.name[0].value.trim()
+      : null
+  const lastName =
+    typeof result?.answers?.lastName?.[0]?.value === 'string' &&
+      result.answers.lastName[0].value.trim().length > 0
+      ? result.answers.lastName[0].value.trim()
+      : null
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || '_____'
 
-  const fullName =
-    typeof result?.answers?.full_name?.[0]?.value === 'string' &&
-      result.answers.full_name[0].value.trim().length > 0
-      ? result.answers.full_name[0].value.trim()
-      : '_____'
-
-  const whatsappMessage = `Ripo, ya me inscribí en tu página web. Mi nombre es ${fullName}. ¿Como seguimos?`
-  const whatsappTarget = submissionWhatsapp ?? '5491155873035'
-  const displayWhatsapp = submissionWhatsapp
-    ? submissionWhatsapp.startsWith('+')
-      ? submissionWhatsapp
-      : `+${submissionWhatsapp}`
-    : null
+  const contactMessage = `Ripo, ya me inscribí en tu página web. Mi nombre es ${fullName}. ¿Como seguimos?`
 
   return (
     <div className="w-full max-w-5xl px-4 py-12 md:px-8">
       <div className="space-y-4 text-center">
-        {/* <p className="text-xs uppercase tracking-[0.3em] text-red-500">
-          Formulario de aplicación
-        </p>
-        <h2 className="text-4xl font-black text-slate-900 dark:text-white md:text-5xl">
-          Transformate con Ripo 💪
-        </h2> */}
         <p className="text-base text-slate-600 dark:text-slate-300 md:text-2xl mx-auto text-balance">
           Contestá las siguientes preguntas <b>con la verdad</b>, para que evalúe si estás listo para empezar tu cambio físico. <br /> Si no estás listo, <b>podés volver cuando lo estés</b>.
         </p>
       </div>
-{/* 
+
       {isDev && (
         <div className="mt-6 flex justify-end">
           <Button
@@ -84,9 +75,9 @@ export function ContactForm() {
             Cargar datos de prueba
           </Button>
         </div>
-      )} */}
+      )}
 
-      {showSuccess ? (
+      {submissionSuccess ? (
         <div className="relative mt-10 overflow-hidden rounded-[32px] border-6 border-emerald-400 bg-slate-900 p-10 text-white shadow-2xl shadow-emerald-500/20 space-y-6 text-center">
           <div
             aria-hidden="true"
@@ -103,9 +94,7 @@ export function ContactForm() {
             <p className="text-lg text-slate-200">{submissionMessage}</p>
           </div>
           <a
-            href={`https://api.whatsapp.com/send?phone=${whatsappTarget}&text=${encodeURIComponent(
-              whatsappMessage,
-            )}`}
+            href={buildContactUrl(contactMessage)}
             target="_blank"
             rel="noopener noreferrer"
             className="group/cta flex w-full flex-col items-center justify-center gap-1 rounded-2xl bg-emerald-400/90 px-8 py-4 text-lg font-black uppercase tracking-wide text-slate-900 shadow-lg hover:shadow-xl shadow-emerald-500/40 transition hover:bg-emerald-300 md:flex-row"
@@ -113,19 +102,17 @@ export function ContactForm() {
             <span role="img" aria-hidden="true" className="group-hover/cta:-translate-x-1 transition-transform duration-300">
               <MessageCircle className="w-6 h-6" />
             </span>
-            Abrir WhatsApp ahora
+            Abrir {getContactAppName()} ahora
             <span aria-hidden="true" className="group-hover/cta:translate-x-2 transition-transform duration-300"><ArrowRight className="w-6 h-6" /></span>
           </a>
-          {displayWhatsapp && (
-            <div className="rounded-2xl bg-slate-800/80 px-6 py-4 text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                El número de WhatsApp que cargaste es:
-              </p>
-              <p className="text-2xl text-white">{displayWhatsapp}</p>
-            </div>
-          )}
+          <div className="rounded-2xl bg-slate-800/80 px-6 py-4 text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              El numero de Ripo es:
+            </p>
+            <p className="text-2xl text-white">{getDisplayNumber()}</p>
+          </div>
           <p className="text-sm text-slate-400">
-            Hacé clic en el botón verde para abrir WhatsApp y continuar la conversación con Ripo.
+            Hacé clic en el botón verde para abrir {getContactAppName()} y continuar la conversación con Ripo.
           </p>
         </div>
       ) : (
@@ -133,6 +120,7 @@ export function ContactForm() {
           <div className="mt-10 relative">
             <div className={result && isSubmitting ? 'pointer-events-none opacity-30 blur-[1px]' : ''}>
               <Questionnaire
+                ref={questionnaireRef}
                 questions={questionnaireQuestions}
                 clarification={questionnaireClarification}
                 onComplete={handleComplete}
@@ -149,12 +137,7 @@ export function ContactForm() {
             )}
           </div>
 
-          {/* <div className="mt-16 space-y-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Debug interno</p>
-            <VideoCompressionDebugger />
-          </div> */}
-
-          {result && !showSuccess && submissionError && (
+          {result && !submissionSuccess && submissionError && (
             <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10">
               <p className="text-sm font-semibold text-red-300">{submissionError}</p>
             </div>
