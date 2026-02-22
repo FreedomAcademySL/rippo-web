@@ -5,6 +5,7 @@ import {
   SupplementHowOften,
   SupplementUnit,
 } from '@/types/form-cuerpo-fit'
+import { getContactAppName } from '@/utils/contact'
 
 export const questionnaireClarification = (
   <div className="space-y-4 text-sm leading-relaxed text-justify">
@@ -21,7 +22,7 @@ export const questionnaireClarification = (
       estés listo. Prefiero que llegues cuando sea tu momento real.
     </p>
     <p>
-      Al finalizar vas a recibir un link directo a mi Whatsapp para enviarme el video de
+      Al finalizar vas a recibir un link directo a mi {getContactAppName()} para enviarme el video de
       evaluación corporal y coordinar tu plan personalizado.
     </p>
   </div>
@@ -698,7 +699,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'whatsapp_country_code',
-    title: 'Código internacional de tu Whatsapp',
+    title: 'Código internacional de tu telefono',
     category: 'contacto',
     required: true,
     type: 'select',
@@ -708,7 +709,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'whatsapp_number',
-    title: 'Número local de Whatsapp (sin el código de país)',
+    title: 'Número local de telefono (sin el código de país)',
     category: 'contacto',
     required: true,
     type: 'phone',
@@ -719,13 +720,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'whatsapp_confirmation',
-    title: '¿Estás seguro que escribiste bien tu número de Whatsapp? A ese número me voy a comunicar con vos para poder empezar.',
+    title: '¿Estás seguro que escribiste bien tu número de telefono? A ese número me voy a comunicar con vos para poder empezar.',
     category: 'compromiso',
     required: true,
     type: 'single-choice',
     answers: [
       { id: 'whatsapp_confirmation_yes', text: 'Sí Ripo, estaré atento a la siguiente pantalla para entrar y empezar mi cambio 💪🏼', value: 3 },
-      { id: 'whatsapp_confirmation_no', text: 'No Ripo, voy a volver atrás para corregir mi número de Whatsapp.', value: 0, blocksProgress: true },
+      { id: 'whatsapp_confirmation_no', text: 'No Ripo, voy a volver atrás para corregir mi número de telefono.', value: 0, blocksProgress: true },
     ],
   },
   {
@@ -740,7 +741,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
     id: 'start_commitment',
     title:
-      'Luego de tocar "ENVIAR" tendrás que entrar al link que aparece para ir a mi Whatsapp. ¿Vas a entrar al link para empezar tu cambio físico?',
+      `Luego de tocar "ENVIAR" tendrás que entrar al link que aparece para ir a mi ${getContactAppName()}. ¿Vas a entrar al link para empezar tu cambio físico?`,
     category: 'compromiso',
     required: true,
     type: 'single-choice',

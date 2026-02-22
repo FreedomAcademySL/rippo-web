@@ -5,16 +5,14 @@ import { buildFormCuerpoFitFormData,  } from '@/services/questionnaire-mapper'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API
 const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/cuerpo-fit` : ''
-const FALLBACK_WHATSAPP = '5491155873035'
-
 export interface QuestionnaireSubmissionResponse {
-  whatsapp: string
+  whatsapp?: string
   status: number
 }
 
 /**
- * Dummy service que simula el envío del formulario a una API real.
- * Retorna un número de Whatsapp junto con un status 200/201 después de un pequeño delay.
+ * Submits the questionnaire form data to the Cuerpo Fit API.
+ * Returns a status code and an optional whatsapp number from the backend response.
  */
 export async function submitQuestionnaireApplication(
   payload: QuestionnaireResult,
@@ -55,7 +53,7 @@ export async function submitQuestionnaireApplication(
 
   return {
     status: response.status,
-    whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : FALLBACK_WHATSAPP,
+    whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : undefined,
   }
 }
 
