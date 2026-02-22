@@ -21,6 +21,9 @@ jobs:
     env:
       VITE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_RECAPTCHA_SITE_KEY }}
       VITE_BASE_API: ${{ secrets.VITE_BASE_API }}
+      VITE_CONTACT_APP: ${{ secrets.VITE_CONTACT_APP }}
+      VITE_CONTACT_NUMBER: ${{ secrets.VITE_CONTACT_NUMBER }}
+      VITE_TELEGRAM_USER: ${{ secrets.VITE_TELEGRAM_USER }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
