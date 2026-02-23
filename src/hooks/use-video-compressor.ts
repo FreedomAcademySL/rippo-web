@@ -16,32 +16,6 @@ import type {
   VideoCompressionStatus,
 } from '@/types/video'
 
-// #region agent log helper
-const sendDebugLog = (
-  payload: Omit<
-    {
-      sessionId: string
-      runId: string
-      hypothesisId: string
-      location: string
-      message: string
-      data?: Record<string, unknown>
-      timestamp: number
-    },
-    'sessionId' | 'timestamp'
-  >,
-) => {
-  fetch('http://127.0.0.1:7242/ingest/5a2ec197-6e4c-41f4-a72e-344e0868140f', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      timestamp: Date.now(),
-      ...payload,
-    }),
-  }).catch(() => {})
-}
-// #endregion agent log helper
 
 interface UseVideoCompressorOptions {
   maxWidth?: number
@@ -108,19 +82,6 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
       realtimeFactorRef.current = null
 
       const resolvedOptions = { ...DEFAULT_OPTIONS, ...options }
-      // #region agent log
-      sendDebugLog({
-        runId: 'postfix1',
-        hypothesisId: 'H1',
-        location: 'use-video-compressor.ts:compress-start',
-        message: 'compress start',
-        data: {
-          name: file.name,
-          size: file.size,
-          options: resolvedOptions,
-        },
-      })
-      // #endregion agent log
       const source = new BlobSource(file)
       const input = new MediabunnyInput({
         source,
@@ -197,30 +158,6 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
             : null
         const targetVideoBitrate =
           totalCap !== null ? Math.min(baseChosen, totalCap) : baseChosen
-        // #region agent log
-        sendDebugLog({
-          runId: 'postfix1',
-          hypothesisId: 'H1',
-          location: 'use-video-compressor.ts:duration-computed',
-          message: 'duration/birate computed',
-          data: {
-            durationSeconds: duration,
-            originalBitratebps: originalBitrate,
-            targetVideoBitratebps: resolvedOptions.videoBitrate,
-            chosenVideoBitratebps: targetVideoBitrate,
-            targetAudioBitratebps: resolvedOptions.audioBitrate,
-            originalWidth: videoMeta.width,
-            originalHeight: videoMeta.height,
-            targetWidth,
-            pixelScale,
-            baseChosenVideoBitratebps: baseChosen,
-            totalCapbps: totalCap,
-            safetyFactor,
-            lowBitrateThreshold,
-            MIN_VIDEO_BITRATE,
-          },
-        })
-        // #endregion agent log
 
         const conversion = await Conversion.init({
           input,
@@ -286,53 +223,12 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
         setMetadata(metadataPayload)
         setResult(payload)
         setStatus('success')
-        // #region agent log
-        sendDebugLog({
-          runId: 'postfix1',
-          hypothesisId: 'H1',
-          location: 'use-video-compressor.ts:compress-success',
-          message: 'compress success',
-          data: {
-            originalSize: file.size,
-            compressedSize: buffer.byteLength,
-            originalBitratebps: originalBitrate,
-            targetVideoBitratebps: resolvedOptions.videoBitrate,
-            chosenVideoBitratebps: targetVideoBitrate,
-            targetAudioBitratebps: resolvedOptions.audioBitrate,
-            approxRealtimeFactor: realtimeFactorRef.current,
-            compressionPercent: metadataPayload.compressionPercent,
-            outputBitratebps: duration ? Math.round((buffer.byteLength * 8) / duration) : null,
-            targetWidth,
-            originalWidth: videoMeta.width,
-            originalHeight: videoMeta.height,
-            baseChosenVideoBitratebps: baseChosen,
-            totalCapbps: totalCap,
-            safetyFactor,
-            lowBitrateThreshold,
-            MIN_VIDEO_BITRATE,
-          },
-        })
-        // #endregion agent log
         return payload
       } catch (conversionError) {
         const message =
           conversionError instanceof Error
             ? conversionError.message
             : 'Ocurrió un error al comprimir el video.'
-        // #region agent log
-        sendDebugLog({
-          runId: 'postfix1',
-          hypothesisId: 'H2',
-          location: 'use-video-compressor.ts:compress-error-fallback',
-          message: 'compress error - using original file as fallback',
-          data: {
-            errorMessage: message,
-            fileName: file.name,
-            fileSize: file.size,
-          },
-        })
-        // #endregion agent log
-
         // Only allow fallback for actual video files
         const isVideo =
           file.type.startsWith('video/') ||

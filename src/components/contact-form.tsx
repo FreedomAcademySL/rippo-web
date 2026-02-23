@@ -21,8 +21,6 @@ export function ContactForm() {
 
   const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
-    // eslint-disable-next-line no-console
-    console.log('Formulario enviado (dummy):', payload)
 
     setIsSubmitting(true)
     setSubmissionMessage(null)
