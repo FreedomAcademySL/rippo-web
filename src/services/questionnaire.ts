@@ -41,7 +41,6 @@ export async function submitQuestionnaireApplication(
       }`,
     )
   }
-  console.log( ' Response:', response)
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '')
     throw new Error(
