@@ -225,10 +225,6 @@ export function useVideoCompressor(options?: UseVideoCompressorOptions) {
         setStatus('success')
         return payload
       } catch (conversionError) {
-        const message =
-          conversionError instanceof Error
-            ? conversionError.message
-            : 'Ocurrió un error al comprimir el video.'
         // Only allow fallback for actual video files
         const isVideo =
           file.type.startsWith('video/') ||
