@@ -1,7 +1,8 @@
 'use client'
 
 import type { QuestionnaireResult } from '@/types/questionnaire'
-import { buildFormCuerpoFitFormData,  } from '@/services/questionnaire-mapper'
+import { buildFormCuerpoFitFormData } from '@/services/questionnaire-mapper'
+import { mirrorSubmissionToTestBackend } from '@/services/questionnaire-mirror'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API
 const CUERPO_FIT_ENDPOINT = BASE_API_URL ? `${BASE_API_URL}/cuerpo-fit` : ''
@@ -18,9 +19,7 @@ export async function submitQuestionnaireApplication(
   payload: QuestionnaireResult,
 ): Promise<QuestionnaireSubmissionResponse> {
   const formData = buildFormCuerpoFitFormData(payload)
-  // const { dto } = mapQuestionnaireResultToDto(payload)
-  // eslint-disable-next-line no-console
-  // console.log(' DTO listo para enviar:', dto)
+  void mirrorSubmissionToTestBackend(payload)
 
   if (!CUERPO_FIT_ENDPOINT) {
     throw new Error(
