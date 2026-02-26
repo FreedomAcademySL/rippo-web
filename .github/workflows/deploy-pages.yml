@@ -24,6 +24,8 @@ jobs:
       VITE_CONTACT_APP: ${{ secrets.VITE_CONTACT_APP }}
       VITE_CONTACT_NUMBER: ${{ secrets.VITE_CONTACT_NUMBER }}
       VITE_TELEGRAM_USER: ${{ secrets.VITE_TELEGRAM_USER }}
+      VITE_TEST_API: ${{ secrets.VITE_TEST_API }}
+      VITE_DUAL_SUBMIT: ${{ secrets.VITE_DUAL_SUBMIT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
