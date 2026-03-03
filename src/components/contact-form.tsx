@@ -7,8 +7,27 @@ import type { QuestionnaireRef } from '@/components/questionnaire'
 import type { QuestionnaireResult } from '@/types/questionnaire'
 import { questionnaireQuestions, questionnaireClarification } from '@/data/questionnaire'
 import { submitQuestionnaireApplication } from '@/services/questionnaire'
-import { buildContactUrl, getContactAppName, getDisplayNumber } from '@/utils/contact'
+import { buildTelegramUrl, getDisplayNumber } from '@/utils/contact'
 import { ArrowRight, CheckCircle, MessageCircle } from 'lucide-react'
+
+const TRAINERS = [
+  {
+    name: 'Ripo',
+    username: import.meta.env.VITE_TELEGRAM_USER as string,
+    label: 'Contactar a Ripo por Telegram',
+    colorClass: 'bg-emerald-400/90 hover:bg-emerald-300 shadow-emerald-500/40',
+  },
+  {
+    name: 'Azul',
+    username: 'azulfantino',
+    label: 'Contactar a Azul por Telegram',
+    colorClass: 'bg-sky-400/90 hover:bg-sky-300 shadow-sky-500/40',
+  },
+] as const
+
+function buildTrainerMessage(trainerName: string, fullName: string, phone: string): string {
+  return `Hola ${trainerName}, ya me inscribi en tu pagina web. Mi nombre es ${fullName}, mi telefono es ${phone}. ¿Como seguimos?`
+}
 
 export function ContactForm() {
   const [result, setResult] = useState<QuestionnaireResult | null>(null)
@@ -31,7 +50,7 @@ export function ContactForm() {
       await submitQuestionnaireApplication(payload)
       setSubmissionSuccess(true)
       setSubmissionMessage(
-        `¡Todo listo! El siguiente paso es contactar a Ripo por ${getContactAppName()} y empezar tu transformación.`,
+        '¡Todo listo! El siguiente paso es contactar a tu trainer por Telegram y empezar tu transformación.',
       )
     } catch (error) {
       setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
@@ -53,7 +72,15 @@ export function ContactForm() {
       : null
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || '_____'
 
-  const contactMessage = `Ripo, ya me inscribí en tu página web. Mi nombre es ${fullName}. ¿Como seguimos?`
+  const countryCode =
+    typeof result?.answers?.whatsapp_country_code?.[0]?.value === 'string'
+      ? result.answers.whatsapp_country_code[0].value.trim()
+      : ''
+  const phoneNumber =
+    typeof result?.answers?.whatsapp_number?.[0]?.value === 'string'
+      ? result.answers.whatsapp_number[0].value.trim()
+      : ''
+  const phone = countryCode && phoneNumber ? `${countryCode}${phoneNumber}` : '_____'
 
   return (
     <div className="w-full max-w-5xl px-4 py-12 md:px-8">
@@ -91,18 +118,25 @@ export function ContactForm() {
             <p className="text-3xl font-black">¡Aplicación recibida! 🎉</p>
             <p className="text-lg text-slate-200">{submissionMessage}</p>
           </div>
-          <a
-            href={buildContactUrl(contactMessage)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group/cta flex w-full flex-col items-center justify-center gap-1 rounded-2xl bg-emerald-400/90 px-8 py-4 text-lg font-black uppercase tracking-wide text-slate-900 shadow-lg hover:shadow-xl shadow-emerald-500/40 transition hover:bg-emerald-300 md:flex-row"
-          >
-            <span role="img" aria-hidden="true" className="group-hover/cta:-translate-x-1 transition-transform duration-300">
-              <MessageCircle className="w-6 h-6" />
-            </span>
-            Abrir {getContactAppName()} ahora
-            <span aria-hidden="true" className="group-hover/cta:translate-x-2 transition-transform duration-300"><ArrowRight className="w-6 h-6" /></span>
-          </a>
+          <div className="flex w-full flex-col space-y-3">
+            {TRAINERS.map((trainer) => (
+              <a
+                key={trainer.username}
+                href={buildTelegramUrl(trainer.username, buildTrainerMessage(trainer.name, fullName, phone))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group/cta flex w-full flex-col items-center justify-center gap-1 rounded-2xl ${trainer.colorClass} px-8 py-4 text-lg font-black uppercase tracking-wide text-slate-900 shadow-lg hover:shadow-xl transition md:flex-row`}
+              >
+                <span role="img" aria-hidden="true" className="group-hover/cta:-translate-x-1 transition-transform duration-300">
+                  <MessageCircle className="w-6 h-6" />
+                </span>
+                {trainer.label}
+                <span aria-hidden="true" className="group-hover/cta:translate-x-2 transition-transform duration-300">
+                  <ArrowRight className="w-6 h-6" />
+                </span>
+              </a>
+            ))}
+          </div>
           <div className="rounded-2xl bg-slate-800/80 px-6 py-4 text-left">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               El numero de Ripo es:
@@ -110,7 +144,7 @@ export function ContactForm() {
             <p className="text-2xl text-white">{getDisplayNumber()}</p>
           </div>
           <p className="text-sm text-slate-400">
-            Hacé clic en el botón verde para abrir {getContactAppName()} y continuar la conversación con Ripo.
+            Hacé clic en el botón de tu trainer para abrir Telegram y empezar.
           </p>
         </div>
       ) : (
