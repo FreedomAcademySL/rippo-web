@@ -6,7 +6,7 @@ Add a second Telegram CTA button for trainer Azul alongside the existing Ripo bu
 
 ## Phases
 
-- [ ] **Phase 1: Dual Telegram CTA** - Add second trainer button, parameterized messages, and updated UI copy
+- [x] **Phase 1: Dual Telegram CTA** - Add second trainer button, parameterized messages, and updated UI copy (completed 2026-03-03)
 
 ## Phase Details
 
@@ -22,10 +22,10 @@ Add a second Telegram CTA button for trainer Azul alongside the existing Ripo bu
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Add buildTelegramUrl utility, dual trainer buttons, phone extraction, centralized message template, and updated UI copy
+- [~] 01-01-PLAN.md — Add buildTelegramUrl utility, dual trainer buttons, phone extraction, centralized message template, and updated UI copy (awaiting human-verify)
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dual Telegram CTA | 0/1 | Not started | - |
+| 1. Dual Telegram CTA | 1/1 | Complete   | 2026-03-03 |
