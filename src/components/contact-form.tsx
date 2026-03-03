@@ -14,13 +14,13 @@ const TRAINERS = [
   {
     name: 'Ripo',
     username: import.meta.env.VITE_TELEGRAM_USER as string,
-    label: 'Contactar a Ripo por Telegram',
+    label: 'Contactar a Coach Ripo por Telegram',
     colorClass: 'bg-emerald-400/90 hover:bg-emerald-300 shadow-emerald-500/40',
   },
   {
     name: 'Azul',
     username: 'azulfantino',
-    label: 'Contactar a Azul por Telegram',
+    label: 'Contactar a Coach Azul por Telegram',
     colorClass: 'bg-sky-400/90 hover:bg-sky-300 shadow-sky-500/40',
   },
 ] as const
@@ -50,7 +50,7 @@ export function ContactForm() {
       await submitQuestionnaireApplication(payload)
       setSubmissionSuccess(true)
       setSubmissionMessage(
-        '¡Todo listo! El siguiente paso es contactar a tu trainer por Telegram y empezar tu transformación.',
+        '¡Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformación.',
       )
     } catch (error) {
       setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
@@ -144,7 +144,7 @@ export function ContactForm() {
             <p className="text-2xl text-white">{getDisplayNumber()}</p>
           </div>
           <p className="text-sm text-slate-400">
-            Hacé clic en el botón de tu trainer para abrir Telegram y empezar.
+            Hacé clic en el botón de tu coach para abrir Telegram y empezar.
           </p>
         </div>
       ) : (
