@@ -27,3 +27,7 @@ export function buildContactUrl(message: string): string {
 
   return `https://api.whatsapp.com/send?phone=${CONTACT_NUMBER}&text=${encoded}`
 }
+
+export function buildTelegramUrl(username: string, message: string): string {
+  return `https://t.me/${username}?text=${encodeURIComponent(message)}`
+}
