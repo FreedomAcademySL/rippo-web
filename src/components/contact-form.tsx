@@ -17,12 +17,6 @@ const TRAINERS = [
     label: 'Contactar a Coach Ripo por Telegram',
     colorClass: 'bg-emerald-400/90 hover:bg-emerald-300 shadow-emerald-500/40',
   },
-  {
-    name: 'Azul',
-    username: 'azulfantino',
-    label: 'Contactar a Coach Azul por Telegram',
-    colorClass: 'bg-sky-400/90 hover:bg-sky-300 shadow-sky-500/40',
-  },
 ] as const
 
 function buildTrainerMessage(trainerName: string, fullName: string, phone: string): string {
