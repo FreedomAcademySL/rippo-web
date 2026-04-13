@@ -1361,12 +1361,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         question.type === 'number' ||
         question.type === 'phone' ||
         question.type === 'date' ||
-        question.type === 'file'
+        question.type === 'file' ||
+        question.type === 'photos'
       ) {
         return (
           <div className="space-y-3">
             {renderInputField(question, storedAnswer)}
-            {question.helperText && (
+            {question.type !== 'photos' && question.helperText && (
               <p className="text-sm text-slate-300">{question.helperText}</p>
             )}
           </div>
