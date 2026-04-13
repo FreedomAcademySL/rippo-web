@@ -436,12 +436,61 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
 }
 
 /**
- * Builds the JSON body for the registration request (POST /cuerpo-fit).
- * The returned DTO includes recaptchaToken (extracted via mapQuestionnaireResultToDto).
+ * Transforms FormCuerpoFitDto into a flat object matching backend ClientApplicationDto.
+ *
+ * The backend expects:
+ * - phone: flattened to top-level countryCode, number, fullNumber (no nested phone object)
+ * - dob: ISO date string (not Date object)
+ * - requireTreatmentCondition: comma-joined string (not array)
+ * - sleepProblem: comma-joined string (not array)
+ * - condition: string (not array -- already single-value but ensure string)
+ * - null/undefined fields: omitted entirely (backend uses @IsOptional)
  */
-export const buildRegistrationJsonBody = (result: QuestionnaireResult): FormCuerpoFitDto => {
+const flattenDtoForBackend = (dto: FormCuerpoFitDto): Record<string, unknown> => {
+  // Destructure phone out -- it must NOT appear as a key in the output
+  const { phone, dob, requireTreatmentCondition, sleepProblem, condition, ...rest } = dto
+
+  const flat: Record<string, unknown> = { ...rest }
+
+  // Flatten phone to top-level fields
+  flat.countryCode = phone.countryCode
+  flat.number = phone.number
+  if (phone.fullNumber) {
+    flat.fullNumber = phone.fullNumber
+  }
+
+  // Convert Date to ISO string (e.g., "1990-05-15T00:00:00.000Z")
+  flat.dob = dob instanceof Date ? dob.toISOString() : String(dob)
+
+  // Convert arrays to comma-separated strings
+  if (requireTreatmentCondition != null) {
+    flat.requireTreatmentCondition = Array.isArray(requireTreatmentCondition)
+      ? requireTreatmentCondition.join(',')
+      : String(requireTreatmentCondition)
+  }
+
+  if (sleepProblem != null) {
+    flat.sleepProblem = Array.isArray(sleepProblem)
+      ? sleepProblem.join(',')
+      : String(sleepProblem)
+  }
+
+  if (condition != null) {
+    flat.condition = String(condition)
+  }
+
+  return flat
+}
+
+/**
+ * Builds the JSON body for the registration request (POST /cuerpo-fit).
+ * Returns a flat Record<string, unknown> matching backend ClientApplicationDto:
+ * phone is flattened to countryCode/number/fullNumber, dob is an ISO string,
+ * requireTreatmentCondition and sleepProblem are comma-separated strings.
+ */
+export const buildRegistrationJsonBody = (result: QuestionnaireResult): Record<string, unknown> => {
   const { dto } = mapQuestionnaireResultToDto(result)
-  return dto
+  return flattenDtoForBackend(dto)
 }
 
 /**
