@@ -605,7 +605,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
         </ul>
       </div>
     ),
-    helperText: 'Formatos aceptados: JPG, PNG, HEIC. Las fotos se comprimen automaticamente.',
+    helperText: 'Formatos aceptados: JPG, PNG, HEIC.',
     accept: 'image/*',
   },
   {
