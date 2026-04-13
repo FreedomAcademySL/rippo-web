@@ -580,47 +580,33 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     ],
   },
   {
-    id: 'video_upload',
-    title: 'Subí tu video de 45 segundos imitando a Ripo',
+    id: 'progress_photos',
+    title: 'Subi tus 6 fotos de progreso',
     category: 'logistica',
     required: true,
-    type: 'file',
+    type: 'photos' as const,
     description: (
-      <div className="space-y-4 text-sm text-slate-200">
+      <div className="space-y-3 text-sm text-slate-200">
         <p>
-          Andá a algún baño o habitación y grabá el siguiente video (imitando cada segundo de mi video
-          que aparece abajo) para armar tu plan según cuánta grasa y cuanto músculo tengas 💪🏼
+          Sacate 6 fotos imitando las poses de referencia para que armemos tu plan
+          segun tu composicion corporal actual.
         </p>
         <p>
-          No compartiremos en ninguna red social tu video a menos que vos nos lo permitas por escrito.
-          No lo grabes al espejo, sólo usá tu cámara selfie (la cámara de adelante de tu celular) e
-          imitá el video que aparece más abajo.
+          No compartiremos tus fotos en ninguna red social a menos que nos lo permitas
+          por escrito.
         </p>
         <ul className="list-disc space-y-1 pl-4">
-          <li>🙋🏻‍♂️ Hombres: Con el torso desnudo y short/ropa interior.</li>
+          <li>Hombres: Con el torso desnudo y short/ropa interior.</li>
           <li>
-            🙋🏻‍♀️ Mujeres: Con top y short o ropa interior, mostrando todo el abdomen hasta por debajo
-            del ombligo.
+            Mujeres: Con top y short o ropa interior, mostrando todo el abdomen
+            hasta por debajo del ombligo.
           </li>
-          <li>⏰ Tiempo que tardarás en hacerlo: 45 segundos.</li>
+          <li>Usa buena iluminacion y fondo neutro.</li>
         </ul>
-        <div className="aspect-video w-full overflow-hidden rounded-xl border border-white/10">
-          <iframe
-            className="h-full w-full"
-            src="https://www.youtube.com/embed/CcyUoPUNWgM"
-            title="Video de referencia"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-        <p>Subilo directamente acá. Nosotros comprimimos y optimizamos el video automáticamente.</p>
       </div>
     ),
-    helperText:
-      'Formatos aceptados: MP4, MOV, MKV o WEBM. Peso máximo recomendado: 250 MB. Te avisamos cuando termine de comprimir.',
-    accept: 'video/*',
-    maxFiles: 1,
-    enableVideoCompression: true,
+    helperText: 'Formatos aceptados: JPG, PNG, HEIC. Las fotos se comprimen automaticamente.',
+    accept: 'image/*',
   },
   {
     id: 'country',
