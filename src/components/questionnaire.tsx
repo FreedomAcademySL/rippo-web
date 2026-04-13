@@ -9,7 +9,6 @@ import {
   useMemo,
   useEffect,
   startTransition,
-  useRef,
   type JSX,
 } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -651,17 +650,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       [isSubmitting],
     )
 
-    const handleRemoveFileAnswer = useCallback((questionId: string) => {
-      if (isSubmitting) {
-        return
-      }
-      setAnswers((prev) => {
-        const updated = { ...prev }
-        delete updated[questionId]
-        return updated
-      })
-      setError(null)
-    }, [isSubmitting])
 
     const attemptCaptchaValidation = useCallback(async (): Promise<string | null> => {
       resetRecaptchaError()

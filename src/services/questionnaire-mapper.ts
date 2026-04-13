@@ -16,8 +16,6 @@ import {
 } from '@/types/form-cuerpo-fit'
 import { POSE_FIELD_NAMES } from '@/lib/pose-config'
 
-type QuestionnaireAnswerValue = QuestionnaireResultAnswer['value']
-
 const enumMaps = {
   treatment: {
     cond_diabetes: RequireTreatmentConditions.DIABETES_TYPE_1_OR_2,
