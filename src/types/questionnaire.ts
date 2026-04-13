@@ -11,10 +11,11 @@ export type QuestionnaireQuestionType =
   | 'date'
   | 'file'
   | 'select'
+  | 'photos'
 
 export type QuestionnaireFieldType = Exclude<
   QuestionnaireQuestionType,
-  'single-choice' | 'multi-choice' | 'file'
+  'single-choice' | 'multi-choice' | 'file' | 'photos'
 >
 
 export interface QuestionnaireField {
