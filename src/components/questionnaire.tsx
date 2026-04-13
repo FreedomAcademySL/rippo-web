@@ -34,15 +34,14 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { VideoUploadField } from '@/components/video-upload-field'
-import type { VideoCompressionPayload } from '@/types/video'
+import { PhotoUploadField } from '@/components/photo-upload-field'
+import { POSE_CONFIG, REQUIRED_PHOTO_COUNT } from '@/lib/pose-config'
 import { useRecaptchaV3 } from '@/hooks/use-recaptcha-v3'
 import { useQuestionnairePersistence } from '@/hooks/use-questionnaire-persistence'
 import { useRestCountries } from '@/hooks/use-rest-countries' 
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 
 const BLOCKER_MESSAGE = 'Volvé cuando estés listo para retomarlo.'
-const VIDEO_QUESTION_ID = 'video_upload'
 const CAPTCHA_ACTION = 'cuerpo_fit_form'
 
 const answerBlocksProgress = (stored?: QuestionnaireStoredAnswer): boolean => {
@@ -397,14 +396,11 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     )
     const [error, setError] = useState<string | null>(null)
     const [isDisabled, setIsDisabled] = useState(false)
-    const [isProcessingFile, setIsProcessingFile] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isCaptchaSatisfied, setIsCaptchaSatisfied] = useState(false)
     const [captchaScore, setCaptchaScore] = useState<number | null>(null)
     const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
     const [selectFilters, setSelectFilters] = useState<Record<string, string>>({})
-    const [showReturnToFinalShortcut, setShowReturnToFinalShortcut] = useState(false)
-    const skipReturnShortcutReset = useRef(false)
     const {
       validate: validateRecaptcha,
       isVerifying: isRecaptchaVerifying,
@@ -473,14 +469,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     )
 
     const totalQuestions = visibleQuestions.length
-    const videoQuestionIndex = useMemo(
-      () => visibleQuestions.findIndex((question) => question.id === VIDEO_QUESTION_ID),
-      [visibleQuestions],
-    )
-    const videoAnswer = videoQuestionIndex >= 0 ? answers[VIDEO_QUESTION_ID] : undefined
-    const isVideoUploaded = Boolean(videoAnswer?.files?.length)
-    const isVideoQuestionAvailable = videoQuestionIndex >= 0
-    const canJumpToVideo = isVideoQuestionAvailable && !isVideoUploaded
 
     useEffect(() => {
       if (showClarification) {
@@ -535,35 +523,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       () => answerBlocksProgress(storedAnswer),
       [storedAnswer],
     )
-    useEffect(() => {
-      if (skipReturnShortcutReset.current) {
-        skipReturnShortcutReset.current = false
-        return
-      }
-      if (currentQuestion?.id !== VIDEO_QUESTION_ID && showReturnToFinalShortcut) {
-        setShowReturnToFinalShortcut(false)
-      }
-    }, [currentQuestion?.id, showReturnToFinalShortcut])
-
-    const handleJumpToVideoQuestion = useCallback(() => {
-      if (videoQuestionIndex < 0 || isSubmitting) {
-        return
-      }
-      skipReturnShortcutReset.current = true
-      setShowReturnToFinalShortcut(true)
-      setCurrentQuestionIndex(videoQuestionIndex)
-      setError(null)
-    }, [isSubmitting, setCurrentQuestionIndex, setError, videoQuestionIndex])
-
-    const handleReturnToFinalStep = useCallback(() => {
-      if (totalQuestions <= 0 || isSubmitting) {
-        return
-      }
-      setShowReturnToFinalShortcut(false)
-      setCurrentQuestionIndex(Math.max(totalQuestions - 1, 0))
-      setError(null)
-    }, [isSubmitting, setCurrentQuestionIndex, setError, totalQuestions])
-
     const handleAnswerSelect = useCallback(
       (answer: QuestionnaireAnswer) => {
         if (isSubmitting) {
@@ -692,27 +651,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
       [isSubmitting],
     )
 
-    const handleVideoCompressionComplete = useCallback(
-      (questionId: string, payload: VideoCompressionPayload) => {
-        if (isSubmitting) {
-          return
-        }
-        setAnswers((prev) => ({
-          ...prev,
-          [questionId]: {
-            id: payload.file.name,
-            files: [payload.file],
-            originalFiles: [payload.originalFile],
-            text: payload.file.name,
-            videoCompression: payload.metadata,
-            blocksProgress: false,
-          },
-        }))
-        setError(null)
-      },
-      [isSubmitting],
-    )
-
     const handleRemoveFileAnswer = useCallback((questionId: string) => {
       if (isSubmitting) {
         return
@@ -788,6 +726,9 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         } else if (question.type === 'file' && !(answer.files?.length)) {
           setError(QUESTIONNAIRE_MESSAGES.required)
           return
+        } else if (question.type === 'photos' && (answer?.files?.length ?? 0) < REQUIRED_PHOTO_COUNT) {
+          setError('Debes subir las 6 fotos antes de continuar.')
+          return
         }
       }
 
@@ -858,22 +799,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         setCurrentQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1))
         setError(null)
         return
-      }
-
-      if (videoQuestionIndex >= 0) {
-        const videoStoredAnswer = answers[VIDEO_QUESTION_ID]
-        const hasVideoFile = Boolean(videoStoredAnswer?.files?.length)
-        if (!hasVideoFile) {
-          skipReturnShortcutReset.current = true
-          setShowReturnToFinalShortcut(true)
-          if (videoQuestionIndex >= 0) {
-            startTransition(() => {
-              setCurrentQuestionIndex(videoQuestionIndex)
-            })
-          }
-          setError('Antes de enviar, volvé a la pregunta del video y subilo.')
-          return
-        }
       }
 
       let effectiveRecaptchaToken = recaptchaToken
@@ -962,6 +887,16 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 value: { type: 'file', name: fileName, file: fileObject },
               },
             ]
+            return acc
+          }
+
+          if (questionEntry.type === 'photos') {
+            if (stored.files?.length) {
+              acc[questionEntry.id] = stored.files.map((file, idx) => ({
+                id: `${questionEntry.id}_${idx}`,
+                value: { type: 'file' as const, name: file.name, file },
+              }))
+            }
             return acc
           }
 
@@ -1095,7 +1030,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         canGoNext:
           Boolean(currentQuestion) &&
           !isDisabled &&
-          !isProcessingFile &&
           !currentAnswerBlocks &&
           !isSubmitting,
         isLastQuestion,
@@ -1112,7 +1046,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
         handleExternalPrevious,
         isDisabled,
         isSubmitting,
-        isProcessingFile,
         isLastQuestion,
         totalQuestions,
         showClarification,
@@ -1282,37 +1215,40 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
               maxLength={question.maxLength}
             />
           )
-        case 'file': {
-          const renderReturnToFinalButton =
-            question.id === VIDEO_QUESTION_ID && showReturnToFinalShortcut ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-white/30 bg-white/5 text-xs text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isProcessingFile || isSubmitting}
-                onClick={handleReturnToFinalStep}
-              >
-                Volver al final
-              </Button>
-            ) : null
-
-          if (question.enableVideoCompression) {
-            return (
-              <div className="space-y-3">
-                <VideoUploadField
-                  question={question}
-                  storedAnswer={answer}
-                  onCompressionComplete={(payload) =>
-                    handleVideoCompressionComplete(question.id, payload)
+        case 'photos': {
+          const storedFiles = POSE_CONFIG.map((pose) =>
+            answer?.files?.find((f) => f.name === `${pose.fieldName}.jpg`) ?? null
+          )
+          return (
+            <PhotoUploadField
+              storedFiles={storedFiles}
+              onFileChange={(index, file) => {
+                if (isSubmitting) return
+                setAnswers((prev) => {
+                  const current = prev[question.id]
+                  const existingFiles = current?.files ?? []
+                  const poseName = POSE_CONFIG[index].fieldName
+                  // Remove old file for this pose (if any)
+                  const filtered = existingFiles.filter((f) => f.name !== `${poseName}.jpg`)
+                  // Add new file (if not null / not removing)
+                  const updatedFiles = file ? [...filtered, file] : filtered
+                  return {
+                    ...prev,
+                    [question.id]: {
+                      id: question.id,
+                      files: updatedFiles.length > 0 ? updatedFiles : undefined,
+                      text: `${updatedFiles.length}/${REQUIRED_PHOTO_COUNT} fotos`,
+                      blocksProgress: false,
+                    },
                   }
-                  onRemove={() => handleRemoveFileAnswer(question.id)}
-                  onProcessingChange={setIsProcessingFile}
-                />
-                {renderReturnToFinalButton}
-              </div>
-            )
-          }
-
+                })
+                setError(null)
+              }}
+              helperText={question.helperText}
+            />
+          )
+        }
+        case 'file': {
           return (
             <div className="space-y-3">
               <input
@@ -1330,7 +1266,6 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                   ))}
                 </ul>
               )}
-              {renderReturnToFinalButton}
             </div>
           )
         }
@@ -1509,13 +1444,13 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
     const isNextDisabled =
       !currentQuestion ||
       isDisabled ||
-      isProcessingFile ||
       isSubmitting ||
       currentAnswerBlocks ||
       (isLastQuestion && isRecaptchaVerifying)
 
     const isPrimaryActionLoading =
       isLastQuestion && (isRecaptchaVerifying || isDisabled || isSubmitting)
+
 
     const primaryButtonClass = cn(
       'w-32 font-semibold text-white transition focus-visible:ring-2 focus-visible:ring-red-400 flex items-center justify-center gap-2',
@@ -1617,68 +1552,27 @@ export const Questionnaire = forwardRef<QuestionnaireRef, QuestionnaireProps>(
                 </p>
               )}
 
-              {isProcessingFile && (
-                <p className="text-center text-sm text-amber-200">
-                  Estamos comprimiendo tu video. Podés avanzar apenas termine el proceso.
-                </p>
-              )}
-
               {isLastQuestion && (
                 <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="space-y-2 rounded-xl border border-white/10 bg-slate-900/40 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white/90">Estado del video</p>
-                        <p
-                          className={cn(
-                            'text-sm',
-                            isVideoUploaded ? 'text-emerald-300' : 'text-amber-300',
-                          )}
-                        >
-                          {isVideoUploaded
-                            ? 'Video cargado correctamente.'
-                            : 'Todavía no subiste tu video.'}
-                        </p>
-                      </div>
-                      {canJumpToVideo && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="shrink-0 border-white/30 bg-white/5 text-xs text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={isProcessingFile || isSubmitting}
-                          onClick={handleJumpToVideoQuestion}
-                        >
-                          Ir a la pregunta del video
-                        </Button>
-                      )}
-                    </div>
-                    {!isVideoUploaded && (
-                      <p className="text-xs text-slate-300">
-                        El video es clave para personalizar tu plan. Volvé a esa pregunta y cargalo
-                        antes de enviar.
-                      </p>
-                    )}
-                  </div>
-
                   <div className="space-y-2">
                     <p className="text-center text-sm text-slate-200">
-                      Validamos automáticamente que sos humano al enviar el formulario.
+                      Validamos automaticamente que sos humano al enviar el formulario.
                     </p>
                     {isRecaptchaVerifying && (
-                      <p className="text-center text-xs text-slate-300">Validando con reCAPTCHA…</p>
+                      <p className="text-center text-xs text-slate-300">Validando con reCAPTCHA...</p>
                     )}
                     {recaptchaError && (
                       <p className="text-center text-xs font-semibold text-amber-300">{recaptchaError}</p>
                     )}
                     {isCaptchaSatisfied && (
                       <p className="text-center text-xs font-semibold text-emerald-300">
-                        Verificación completada
+                        Verificacion completada
                         {captchaScore !== null ? ` (score ${captchaScore.toFixed(2)})` : ''}.
                       </p>
                     )}
                     {isSubmitting && (
                       <p className="text-center text-xs text-slate-200">
-                        Enviando tus respuestas... No cierres esta pestaña.
+                        Enviando tus respuestas... No cierres esta pestana.
                       </p>
                     )}
                   </div>

@@ -12,7 +12,7 @@ export function mirrorSubmissionToTestBackend(
 
   try {
     const formData = buildFormCuerpoFitFormData(payload)
-    formData.delete('file')
+    // 'file' key no longer exists -- video removed. No deletion needed.
 
     fetch(ENDPOINT, { method: 'POST', body: formData })
       .then(async (res) => {

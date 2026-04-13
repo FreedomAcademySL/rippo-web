@@ -14,6 +14,7 @@ import {
   UserRecordVideo,
   WakeUpDelay,
 } from '@/types/form-cuerpo-fit'
+import { POSE_FIELD_NAMES } from '@/lib/pose-config'
 
 type QuestionnaireAnswerValue = QuestionnaireResultAnswer['value']
 
@@ -69,11 +70,6 @@ const enumMaps = {
     ref_friend: 'Recomendado',
     ref_other: 'Otro',
   } as Record<string, string>,
-  userRecordVideo: {
-    video_whatsapp: UserRecordVideo.WHATSAPP,
-    video_uploaded: UserRecordVideo.FORM,
-    video_not_recording: UserRecordVideo.NO,
-  } as Record<string, UserRecordVideo>,
 }
 
 const YES_IDS = {
@@ -92,9 +88,6 @@ const WORKOUT_CONSISTENCY: Record<string, number> = {
   train_5: 5,
   train_6: 6,
 }
-
-const isFileAnswer = (value?: QuestionnaireAnswerValue): value is { type: 'file'; name: string; file?: File } =>
-  Boolean(value && typeof value === 'object' && 'type' in value && value.type === 'file')
 
 const getAnswerEntries = (
   answers: QuestionnaireResult['answers'],
@@ -135,14 +128,6 @@ const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: 
     }
     return entry.id ? [entry.id] : []
   })
-}
-
-const getFileFromAnswer = (answers: QuestionnaireResult['answers'], questionId: string): File | undefined => {
-  const value = getAnswerEntries(answers, questionId)[0]?.value
-  if (isFileAnswer(value)) {
-    return value.file
-  }
-  return undefined
 }
 
 const sanitizeNumber = (value?: string): string => value?.replace(/\D/g, '') ?? ''
@@ -352,20 +337,6 @@ const mapAddiction = (answers: QuestionnaireResult['answers']): {
   }
 }
 
-const mapVideoPreference = (
-  answers: QuestionnaireResult['answers'],
-  videoFile?: File,
-): UserRecordVideo => {
-  const selected = enumMaps.userRecordVideo[getSingleChoiceId(answers, 'video_confirmation') ?? '']
-  if (selected) {
-    return selected
-  }
-  if (videoFile) {
-    return UserRecordVideo.FORM
-  }
-  return UserRecordVideo.NO
-}
-
 const mapWakeUpDelay = (answers: QuestionnaireResult['answers']): WakeUpDelay | string | null =>
   enumMaps.wakeUp[getSingleChoiceId(answers, 'wake_up_time') ?? ''] ?? null
 
@@ -386,12 +357,8 @@ const mapReferral = (answers: QuestionnaireResult['answers']): string => {
   return `${label} - ${detail}`
 }
 
-const mapUserRecordVideoFile = (answers: QuestionnaireResult['answers']): File | undefined =>
-  getFileFromAnswer(answers, 'video_upload')
-
 export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   dto: FormCuerpoFitDto
-  videoFile?: File
 } => {
   const answers = result.answers ?? {}
   const recaptchaToken = result.recaptchaToken
@@ -406,7 +373,6 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   const whatsappOtherDetail = getTextAnswer(answers, 'whatsapp_other_detail')
   const otherTreatmentDetail = getTextAnswer(answers, 'health_conditions_other_detail')
   const otherConditionDetail = getTextAnswer(answers, 'other_health_conditions_detail')
-  const videoFile = mapUserRecordVideoFile(answers)
 
   const { addiction, addictionAmount, addictionFrequency, detail: addictionDetail } = mapAddiction(answers)
   const supplementDescription = getTextAnswer(answers, 'supplement')
@@ -458,20 +424,42 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     supplementUnit: supplementUnit ?? null,
     supplementHowMany: supplementAmount,
     supplementHowOften: supplementFrequency ?? null,
-    userRecordVideo: mapVideoPreference(answers, videoFile),
+    userRecordVideo: UserRecordVideo.NO,  // Always NO -- video removed
     country: getTextAnswer(answers, 'country') || 'No informado',
     city: getTextAnswer(answers, 'city') || 'No informado',
     howDidUserEndUpHere: mapReferral(answers),
-    recaptchaToken,
+    recaptchaToken,  // MUST remain -- extracted from result.recaptchaToken
     instagramUser: ensureInstagramHandle(getTextAnswer(answers, 'instagram')),
     phone: buildPhone(answers),
     lastComment: notes ? notes.slice(0, 1000) : undefined,
   }
 
-  return {
-    dto,
-    videoFile,
-  }
+  return { dto }
+}
+
+/**
+ * Builds the JSON body for the registration request (POST /cuerpo-fit).
+ * The returned DTO includes recaptchaToken (extracted via mapQuestionnaireResultToDto).
+ */
+export const buildRegistrationJsonBody = (result: QuestionnaireResult): FormCuerpoFitDto => {
+  const { dto } = mapQuestionnaireResultToDto(result)
+  return dto
+}
+
+/**
+ * Builds multipart FormData for the progress photos request
+ * (POST /clients/:clientId/progress-photos).
+ * Appends each photo file under its pose field name and adds context=registration.
+ */
+export const buildPhotosFormData = (photos: File[]): FormData => {
+  const fd = new FormData()
+  POSE_FIELD_NAMES.forEach((pose, i) => {
+    if (photos[i]) {
+      fd.append(pose, photos[i], photos[i].name)
+    }
+  })
+  fd.append('context', 'registration')
+  return fd
 }
 
 const appendValue = (formData: FormData, key: string, value: unknown) => {
@@ -497,8 +485,12 @@ const appendPhone = (formData: FormData, phone: PhoneDto) => {
   }
 }
 
+/**
+ * Kept for backward compatibility (mirror service uses it).
+ * Video file appending removed -- video replaced by 6 photos.
+ */
 export const buildFormCuerpoFitFormData = (result: QuestionnaireResult): FormData => {
-  const { dto, videoFile } = mapQuestionnaireResultToDto(result)
+  const { dto } = mapQuestionnaireResultToDto(result)
   const formData = new FormData()
 
   ;(Object.entries(dto) as [keyof FormCuerpoFitDto, FormCuerpoFitDto[keyof FormCuerpoFitDto]][]).forEach(
@@ -511,11 +503,5 @@ export const buildFormCuerpoFitFormData = (result: QuestionnaireResult): FormDat
     },
   )
 
-  if (videoFile) {
-    formData.append('file', videoFile, videoFile.name)
-  }
-
   return formData
 }
-
-
