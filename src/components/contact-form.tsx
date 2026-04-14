@@ -9,6 +9,9 @@ import { questionnaireQuestions, questionnaireClarification } from '@/data/quest
 import { submitRegistrationData, submitProgressPhotos } from '@/services/questionnaire'
 import { buildTelegramUrl, getDisplayNumber } from '@/utils/contact'
 import { ArrowRight, CheckCircle, MessageCircle } from 'lucide-react'
+import { PhotoUploadField } from '@/components/photo-upload-field'
+import { Spinner } from '@/components/ui/spinner'
+import { REQUIRED_PHOTO_COUNT } from '@/lib/pose-config'
 
 const TRAINERS = [
   {
@@ -50,9 +53,20 @@ export function ContactForm() {
   const [submissionError, setSubmissionError] = useState<string | null>(null)
   const [clientId, setClientId] = useState<string | null>(null)
   const [photoRetryNeeded, setPhotoRetryNeeded] = useState(false)
-  const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [photoUploadStep, setPhotoUploadStep] = useState(false)
+  const [photoSlots, setPhotoSlots] = useState<(File | null)[]>(
+    Array.from({ length: REQUIRED_PHOTO_COUNT }, () => null),
+  )
   const questionnaireRef = useRef<QuestionnaireRef>(null)
   const isDev = import.meta.env.DEV
+
+  const handlePhotoSlotChange = useCallback((index: number, file: File | null) => {
+    setPhotoSlots(prev => {
+      const next = [...prev]
+      next[index] = file
+      return next
+    })
+  }, [])
 
   const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
@@ -62,45 +76,11 @@ export function ContactForm() {
     setSubmissionSuccess(false)
     setPhotoRetryNeeded(false)
 
-    // Extract photo files from the progress_photos answer
-    const photosAnswer = payload.answers?.['progress_photos']
-    const photos: File[] = []
-    if (photosAnswer) {
-      for (const entry of photosAnswer) {
-        const val = entry.value
-        if (val && typeof val === 'object' && 'file' in val && val.file) {
-          photos.push(val.file as File)
-        }
-      }
-    }
-    setPhotoFiles(photos)
-
     try {
-      // Step 1: Submit registration data as JSON (first request)
-      // The JSON body includes recaptchaToken (extracted by buildRegistrationJsonBody)
       const regResponse = await submitRegistrationData(payload)
-      const newClientId = regResponse.clientId
-      setClientId(newClientId)
-
-      // Step 2: Submit photos with 409 retry (second request)
-      try {
-        await submitPhotosWithRetry(newClientId, photos)
-      } catch (photoError) {
-        // Photo failure — show retry button, don't reset questionnaire
-        console.error('Photo submission failed:', photoError)
-        setPhotoRetryNeeded(true)
-        setSubmissionError('Hubo un error subiendo las fotos. Intenta de nuevo.')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Both succeeded
-      setSubmissionSuccess(true)
-      setSubmissionMessage(
-        'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
-      )
+      setClientId(regResponse.clientId)
+      setPhotoUploadStep(true)
     } catch (error) {
-      // First request failure — generic error
       setSubmissionError('Ups, no pudimos guardar tu info. Proba de nuevo en unos minutos.')
       throw error instanceof Error ? error : new Error('questionnaire-submission-failed')
     } finally {
@@ -108,23 +88,25 @@ export function ContactForm() {
     }
   }, [])
 
-  const handlePhotoRetry = useCallback(async () => {
-    if (!clientId || !photoFiles.length) return
+  const handlePhotoSubmit = useCallback(async () => {
+    if (!clientId) return
+    const photos = photoSlots.filter((f): f is File => f !== null)
+    if (photos.length < REQUIRED_PHOTO_COUNT) return
 
     setIsSubmitting(true)
     setSubmissionError(null)
     setPhotoRetryNeeded(false)
 
     try {
-      await submitPhotosWithRetry(clientId, photoFiles)
+      await submitPhotosWithRetry(clientId, photos)
       setSubmissionSuccess(true)
+      setPhotoUploadStep(false)
       setSubmissionMessage(
         'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
       )
     } catch (error) {
-      console.error('Photo retry failed:', error)
+      console.error('Photo submission failed:', error)
       setPhotoRetryNeeded(true)
-      // Show specific message for 409 race condition
       const is409 = error instanceof Error && (error as Error & { is409?: boolean }).is409
       setSubmissionError(
         is409
@@ -134,7 +116,37 @@ export function ContactForm() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [clientId, photoFiles])
+  }, [clientId, photoSlots])
+
+  const handlePhotoRetry = useCallback(async () => {
+    if (!clientId) return
+    const photos = photoSlots.filter((f): f is File => f !== null)
+    if (!photos.length) return
+
+    setIsSubmitting(true)
+    setSubmissionError(null)
+    setPhotoRetryNeeded(false)
+
+    try {
+      await submitPhotosWithRetry(clientId, photos)
+      setSubmissionSuccess(true)
+      setPhotoUploadStep(false)
+      setSubmissionMessage(
+        'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
+      )
+    } catch (error) {
+      console.error('Photo retry failed:', error)
+      setPhotoRetryNeeded(true)
+      const is409 = error instanceof Error && (error as Error & { is409?: boolean }).is409
+      setSubmissionError(
+        is409
+          ? 'Estamos preparando tu espacio de entrenamiento. Por favor, reintenta el envio en unos segundos.'
+          : 'Hubo un error subiendo las fotos. Intenta de nuevo.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [clientId, photoSlots])
 
   const firstName =
     typeof result?.answers?.name?.[0]?.value === 'string' &&
@@ -166,7 +178,7 @@ export function ContactForm() {
         </p>
       </div>
 
-      {isDev && (
+      {isDev && !photoUploadStep && !submissionSuccess && (
         <div className="mt-6 flex justify-end">
           <Button
             variant="outline"
@@ -223,6 +235,46 @@ export function ContactForm() {
             Hacé clic en el botón de tu coach para abrir Telegram y empezar.
           </p>
         </div>
+      ) : photoUploadStep ? (
+        <div className="mt-10 rounded-[32px] bg-slate-900 p-8 text-white shadow-2xl md:p-10">
+          <div className="mx-auto max-w-lg space-y-6">
+            <div className="space-y-2 text-center">
+              <h2 className="text-xl font-semibold">Fotos de evaluacion</h2>
+              <p className="text-sm text-slate-300">
+                Ya tenemos tu informacion. Ahora subi las 6 fotos para que Ripo pueda armar tu plan.
+              </p>
+            </div>
+
+            <PhotoUploadField
+              storedFiles={photoSlots}
+              onFileChange={handlePhotoSlotChange}
+              helperText="Formatos aceptados: JPG, PNG, HEIC."
+            />
+
+            {submissionError && (
+              <div className="rounded-3xl border border-red-500/30 bg-slate-900/60 p-4">
+                <p className="text-sm font-semibold text-red-300">{submissionError}</p>
+              </div>
+            )}
+
+            <Button
+              onClick={photoRetryNeeded ? handlePhotoRetry : handlePhotoSubmit}
+              disabled={isSubmitting || photoSlots.some(f => f === null)}
+              className="w-full bg-primary text-white hover:bg-primary/90"
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner className="mr-2" />
+                  Subiendo fotos...
+                </>
+              ) : photoRetryNeeded ? (
+                'Reintentar envio de fotos'
+              ) : (
+                'Enviar fotos'
+              )}
+            </Button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="mt-10 relative">
@@ -237,26 +289,17 @@ export function ContactForm() {
             </div>
             {result && isSubmitting && (
               <div className="pointer-events-auto absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[32px] bg-slate-950/80 p-8 text-center text-white space-y-3">
-                <p className="text-lg font-semibold">Enviando tu aplicacion...</p>
+                <p className="text-lg font-semibold">Guardando tu aplicacion...</p>
                 <p className="text-sm text-slate-200">
-                  Estamos enviando tus respuestas y fotos. No cierres esta pestana hasta que terminemos.
+                  Estamos guardando tus respuestas. No cierres esta pestana.
                 </p>
               </div>
             )}
           </div>
 
-          {result && !submissionSuccess && submissionError && (
+          {result && !submissionSuccess && submissionError && !photoUploadStep && (
             <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10">
               <p className="text-sm font-semibold text-red-300">{submissionError}</p>
-              {photoRetryNeeded && (
-                <Button
-                  onClick={handlePhotoRetry}
-                  disabled={isSubmitting}
-                  className="mt-3 bg-primary text-white hover:bg-primary/90"
-                >
-                  {isSubmitting ? 'Enviando fotos...' : 'Reintentar envio de fotos'}
-                </Button>
-              )}
             </div>
           )}
         </>
