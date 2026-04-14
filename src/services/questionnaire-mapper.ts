@@ -109,10 +109,11 @@ const getNumberAnswer = (answers: QuestionnaireResult['answers'], questionId: st
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const getDateAnswer = (answers: QuestionnaireResult['answers'], questionId: string): Date => {
+const getDateAnswer = (answers: QuestionnaireResult['answers'], questionId: string): Date | null => {
   const text = getTextAnswer(answers, questionId)
-  const parsed = text ? new Date(text) : new Date()
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  if (!text) return null
+  const parsed = new Date(text)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: string): string[] => {
@@ -398,12 +399,17 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     .filter(Boolean)
     .join('\n\n')
 
+  const dob = getDateAnswer(answers, 'birthday')
+  if (!dob) {
+    throw new Error('Fecha de nacimiento requerida. Por favor ingresá tu fecha de nacimiento.')
+  }
+
   const dto: FormCuerpoFitDto = {
     email: getTextAnswer(answers, 'email'),
     name,
     lastName,
     sex: mapGenderToSexo(getSingleChoiceId(answers, 'gender')),
-    dob: getDateAnswer(answers, 'birthday'),
+    dob,
     height: getNumberAnswer(answers, 'height') ?? 0,
     weight: getNumberAnswer(answers, 'weight') ?? 0,
     work: getTextAnswer(answers, 'job') || 'No informado',
