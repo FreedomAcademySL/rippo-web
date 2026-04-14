@@ -102,64 +102,65 @@ export function PhotoUploadField({
         </DialogContent>
       </Dialog>
 
-      {/* 6 pose upload rows */}
-      <div className="mx-auto max-w-md space-y-4">
+      {/* 6 pose upload grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         {POSE_CONFIG.map((pose, index) => (
-          <div key={pose.fieldName} className="flex items-center gap-3">
-          {/* Reference thumbnail */}
-          <img
-            src={pose.referenceSrc}
-            alt={pose.label}
-            className="h-20 w-16 flex-shrink-0 rounded-lg object-cover"
-          />
+          <div
+            key={pose.fieldName}
+            className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/40"
+          >
+            {/* Image area — reference before upload, user photo after */}
+            <img
+              src={previewUrls[index] ?? pose.referenceSrc}
+              alt={pose.label}
+              className="aspect-[3/4] w-full rounded-t-xl object-cover"
+            />
 
-          {/* Upload slot */}
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-slate-300">{pose.label}</p>
+            {/* Card footer: label + action */}
+            <div className="space-y-2 p-3">
+              <p className="text-sm font-medium text-slate-300">{pose.label}</p>
 
-            {previewUrls[index] ? (
-              <div className="flex items-center gap-3">
-                <img
-                  src={previewUrls[index]!}
-                  alt={pose.label}
-                  className="size-20 rounded-lg object-cover"
-                />
+              {previewUrls[index] ? (
+                /* After upload: X remove button */
                 <Button
                   type="button"
                   variant="outline"
-                  size="icon"
-                  className="size-8 border-white/30"
+                  size="sm"
+                  className="w-full border-white/30 text-sm"
                   onClick={() => onFileChange(index, null)}
                 >
-                  <X className="size-4" />
+                  <X className="mr-2 size-4" />
+                  Quitar foto
                 </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-dashed border-white/30 bg-white/5 text-sm text-white hover:bg-white/15"
-                onClick={() => inputRefs.current[index]?.click()}
-              >
-                <Camera className="mr-2 size-4" />
-                Seleccionar foto
-              </Button>
-            )}
+              ) : (
+                /* Before upload: select button */
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed border-white/30 bg-white/5 text-sm text-white hover:bg-white/15"
+                  onClick={() => inputRefs.current[index]?.click()}
+                >
+                  <Camera className="mr-2 size-4" />
+                  Seleccionar foto
+                </Button>
+              )}
 
-            <input
-              ref={(el) => {
-                inputRefs.current[index] = el
-              }}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileSelect(index)}
-            />
+              <input
+                ref={(el) => {
+                  inputRefs.current[index] = el
+                }}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect(index)}
+              />
+            </div>
           </div>
-        </div>
         ))}
-        {helperText && <p className="text-xs text-slate-300">{helperText}</p>}
       </div>
+      {helperText && (
+        <p className="mt-2 text-xs text-slate-400">{helperText}</p>
+      )}
     </div>
   )
 }
