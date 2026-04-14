@@ -75,7 +75,7 @@ export function PhotoUploadField({
   )
 
   return (
-    <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-900/40 p-4">
+    <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-900/40 p-4 md:p-6">
       {/* Reference photos modal */}
       <Dialog>
         <DialogTrigger asChild>
@@ -103,8 +103,9 @@ export function PhotoUploadField({
       </Dialog>
 
       {/* 6 pose upload rows */}
-      {POSE_CONFIG.map((pose, index) => (
-        <div key={pose.fieldName} className="flex items-center gap-3">
+      <div className="mx-auto max-w-md space-y-4">
+        {POSE_CONFIG.map((pose, index) => (
+          <div key={pose.fieldName} className="flex items-center gap-3">
           {/* Reference thumbnail */}
           <img
             src={pose.referenceSrc}
@@ -156,9 +157,9 @@ export function PhotoUploadField({
             />
           </div>
         </div>
-      ))}
-
-      {helperText && <p className="text-xs text-slate-300">{helperText}</p>}
+        ))}
+        {helperText && <p className="text-xs text-slate-300">{helperText}</p>}
+      </div>
     </div>
   )
 }
