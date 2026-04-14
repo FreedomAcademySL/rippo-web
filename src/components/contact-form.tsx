@@ -88,7 +88,7 @@ export function ContactForm() {
     }
   }, [])
 
-  const handlePhotoSubmit = useCallback(async () => {
+  const submitPhotos = useCallback(async () => {
     if (!clientId) return
     const photos = photoSlots.filter((f): f is File => f !== null)
     if (photos.length < REQUIRED_PHOTO_COUNT) return
@@ -106,36 +106,6 @@ export function ContactForm() {
       )
     } catch (error) {
       console.error('Photo submission failed:', error)
-      setPhotoRetryNeeded(true)
-      const is409 = error instanceof Error && (error as Error & { is409?: boolean }).is409
-      setSubmissionError(
-        is409
-          ? 'Estamos preparando tu espacio de entrenamiento. Por favor, reintenta el envio en unos segundos.'
-          : 'Hubo un error subiendo las fotos. Intenta de nuevo.',
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [clientId, photoSlots])
-
-  const handlePhotoRetry = useCallback(async () => {
-    if (!clientId) return
-    const photos = photoSlots.filter((f): f is File => f !== null)
-    if (!photos.length) return
-
-    setIsSubmitting(true)
-    setSubmissionError(null)
-    setPhotoRetryNeeded(false)
-
-    try {
-      await submitPhotosWithRetry(clientId, photos)
-      setSubmissionSuccess(true)
-      setPhotoUploadStep(false)
-      setSubmissionMessage(
-        'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
-      )
-    } catch (error) {
-      console.error('Photo retry failed:', error)
       setPhotoRetryNeeded(true)
       const is409 = error instanceof Error && (error as Error & { is409?: boolean }).is409
       setSubmissionError(
@@ -258,7 +228,7 @@ export function ContactForm() {
             )}
 
             <Button
-              onClick={photoRetryNeeded ? handlePhotoRetry : handlePhotoSubmit}
+              onClick={submitPhotos}
               disabled={isSubmitting || photoSlots.some(f => f === null)}
               className="w-full bg-primary text-white hover:bg-primary/90"
             >
