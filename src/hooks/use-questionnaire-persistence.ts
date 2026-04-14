@@ -38,7 +38,7 @@ const sanitizeAnswersForStorage = (
 ): Record<string, PersistedStoredAnswer> => {
   return Object.entries(answers).reduce<Record<string, PersistedStoredAnswer>>((acc, [id, stored]) => {
     const question = questionMap.get(id)
-    if (!question || question.type === 'file') {
+    if (!question || question.type === 'file' || question.type === 'photos') {
       // Los archivos / videos no se persisten porque localStorage no soporta blobs.
       return acc
     }
@@ -67,7 +67,7 @@ const restoreAnswersFromStorage = (
   return Object.entries(persisted).reduce<Record<string, QuestionnaireStoredAnswer>>(
     (acc, [id, stored]) => {
       const question = questionMap.get(id)
-      if (!question || question.type === 'file') {
+      if (!question || question.type === 'file' || question.type === 'photos') {
         return acc
       }
 
