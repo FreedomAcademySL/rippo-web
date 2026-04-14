@@ -207,7 +207,7 @@ export function ContactForm() {
         </div>
       ) : photoUploadStep ? (
         <div className="mt-10 rounded-[32px] bg-slate-900 p-8 text-white shadow-2xl md:p-10">
-          <div className="mx-auto max-w-lg space-y-6">
+          <div className="mx-auto max-w-3xl space-y-6">
             <div className="space-y-2 text-center">
               <h2 className="text-xl font-semibold">Fotos de evaluacion</h2>
               <p className="text-sm text-slate-300">
