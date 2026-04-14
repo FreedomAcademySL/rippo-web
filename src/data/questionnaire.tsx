@@ -151,7 +151,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     placeholder: 'ripo@email.com',
     helperText: 'Usá el mail que revisás todos los días.',
     pattern:
-      “^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$”,
+      "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
     inputMode: 'email',
   },
   {
@@ -174,7 +174,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     required: true,
     type: 'select',
     placeholder: 'Elegí tu prefijo (+54)',
-    helperText: 'Mostramos el signo + para evitar confusiones. Si no ves el tuyo, elegí “Otro código” y contanos en el mensaje final.',
+    helperText: 'Mostramos el signo + para evitar confusiones. Si no ves el tuyo, elegí "Otro código" y contanos en el mensaje final.',
     selectOptions: LATAM_CALLING_CODES,
   },
   {
@@ -295,7 +295,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       { id: 'cond_other', text: 'Otro' },
     ],
     clarification:
-      'Seleccioná todas las que correspondan. Si completás “Otro”, detallalo en la siguiente pregunta.',
+      'Seleccioná todas las que correspondan. Si completás "Otro", detallalo en la siguiente pregunta.',
   },
   {
     id: 'health_conditions_other_detail',
@@ -463,7 +463,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
     id: 'steps_app',
     title:
-      '¿Tenés alguna app como “Steps App”, “Samsung Health” o “Salud” para contar tus pasos diarios?',
+      '¿Tenés alguna app como "Steps App", "Samsung Health" o "Salud" para contar tus pasos diarios?',
     category: 'habitos',
     required: true,
     type: 'single-choice',
@@ -537,7 +537,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
     id: 'training_days',
     title:
-      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (elegí “3 días” para empezar)',
+      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (elegí "3 días" para empezar)',
     category: 'compromiso',
     required: true,
     type: 'single-choice',
@@ -629,7 +629,7 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
   },
   {
     id: 'referral_detail',
-    title: 'Si fue por un amigo/familiar u “Otro”, contame quién o cómo',
+    title: 'Si fue por un amigo/familiar u "Otro", contame quién o cómo',
     category: 'contexto',
     type: 'text',
     minLength: 3,
