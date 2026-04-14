@@ -254,14 +254,21 @@ const mapCondition = (answers: QuestionnaireResult['answers']): Condition | stri
   if (!selections.length || selections.includes('cond_none_other')) {
     return null
   }
-  const mapped = selections.map((id) => enumMaps.condition[id]).find(Boolean)
-  if (mapped) {
-    return mapped
-  }
+
+  // Map all enum selections and join them — backend accepts comma-separated values
+  // (consistent with how requireTreatmentCondition is handled in flattenDtoForBackend)
+  const mapped = selections
+    .map((id) => enumMaps.condition[id])
+    .filter(Boolean)
+
+  const parts: string[] = mapped.map((v) => v as string)
+
   if (selections.includes('cond_other_extra')) {
-    return getTextAnswer(answers, 'other_health_conditions_detail') || null
+    const detail = getTextAnswer(answers, 'other_health_conditions_detail')
+    if (detail) parts.push(detail)
   }
-  return null
+
+  return parts.length ? parts.join(',') : null
 }
 
 const mapSleepProblem = (
