@@ -59,6 +59,34 @@ vi.mock('@/components/questionnaire', () => ({
   }),
 }))
 
+// Mock PhotoUploadField — renders a test helper button "Fill all photos" that manually
+// calls onFileChange for all 6 slots when clicked, enabling the submit button.
+// This avoids the complexity of simulating real file-input interactions in jsdom.
+vi.mock('@/components/photo-upload-field', () => ({
+  PhotoUploadField: function MockPhotoUploadField({
+    onFileChange,
+  }: {
+    storedFiles: (File | null)[]
+    onFileChange: (index: number, file: File | null) => void
+    helperText?: string
+  }) {
+    return (
+      <div data-testid="mock-photo-upload-field">
+        <button
+          data-testid="fill-all-photos"
+          onClick={() => {
+            for (let i = 0; i < 6; i++) {
+              onFileChange(i, new File(['photo'], `photo-${i}.jpg`, { type: 'image/jpeg' }))
+            }
+          }}
+        >
+          Fill all photos
+        </button>
+      </div>
+    )
+  },
+}))
+
 // Mock environment variables
 vi.stubEnv('VITE_TELEGRAM_USER', 'test_trainer')
 vi.stubEnv('DEV', 'true')
@@ -175,5 +203,45 @@ describe('ContactForm — two-step flow', () => {
     await act(async () => {
       resolveRegistration!({ clientId: 'client-123', status: 201 })
     })
+  })
+
+  it('D-14: photo submit success → success screen with "Aplicación recibida" appears', async () => {
+    mockSubmitRegistration.mockResolvedValueOnce({ clientId: 'client-123', status: 201 })
+    mockSubmitPhotos.mockResolvedValueOnce(undefined)
+
+    render(<ContactForm />)
+
+    // Step 1: complete questionnaire → triggers JSON registration
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('complete-questionnaire'))
+    })
+
+    // Step 2: photo upload step should appear
+    await waitFor(() => {
+      expect(screen.getByText('Fotos de evaluacion')).toBeInTheDocument()
+    })
+
+    // Step 3: fill all 6 photo slots via the mock helper button, then wait for submit to enable
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('fill-all-photos'))
+    })
+
+    const submitBtn = screen.getByRole('button', { name: /enviar fotos/i })
+    await waitFor(() => {
+      expect(submitBtn).not.toBeDisabled()
+    })
+
+    // Step 4: click submit
+    await act(async () => {
+      await userEvent.click(submitBtn)
+    })
+
+    // Step 5: success screen should appear
+    await waitFor(() => {
+      expect(screen.getByText(/Aplicación recibida/i)).toBeInTheDocument()
+    })
+
+    expect(mockSubmitPhotos).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Fotos de evaluacion')).not.toBeInTheDocument()
   })
 })
