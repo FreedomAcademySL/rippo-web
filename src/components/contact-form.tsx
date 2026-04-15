@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Questionnaire } from '@/components/questionnaire'
 import type { QuestionnaireRef } from '@/components/questionnaire'
@@ -60,6 +60,22 @@ export function ContactForm() {
   const questionnaireRef = useRef<QuestionnaireRef>(null)
   const isDev = import.meta.env.DEV
 
+  // Resume logic (D-01, D-02): check ?id= param first, then localStorage fallback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const idFromParam = params.get('id')
+    if (idFromParam) {
+      setClientId(idFromParam)
+      setPhotoUploadStep(true)
+      return
+    }
+    const stored = localStorage.getItem('ripo_pending_photos')
+    if (stored) {
+      setClientId(stored)
+      setPhotoUploadStep(true)
+    }
+  }, [])
+
   const handlePhotoSlotChange = useCallback((index: number, file: File | null) => {
     setPhotoSlots(prev => {
       const next = [...prev]
@@ -80,6 +96,7 @@ export function ContactForm() {
       const regResponse = await submitRegistrationData(payload)
       setClientId(regResponse.clientId)
       setPhotoUploadStep(true)
+      localStorage.setItem('ripo_pending_photos', regResponse.clientId)
     } catch (error) {
       setSubmissionError('Ups, no pudimos guardar tu info. Proba de nuevo en unos minutos.')
       throw error instanceof Error ? error : new Error('questionnaire-submission-failed')
@@ -101,6 +118,8 @@ export function ContactForm() {
       await submitPhotosWithRetry(clientId, photos)
       setSubmissionSuccess(true)
       setPhotoUploadStep(false)
+      localStorage.removeItem('ripo_pending_photos')
+      history.replaceState({}, '', window.location.pathname)
       setSubmissionMessage(
         'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
       )
