@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Questionnaire } from '@/components/questionnaire'
 import type { QuestionnaireRef } from '@/components/questionnaire'
 import type { QuestionnaireResult } from '@/types/questionnaire'
 import { questionnaireQuestions, questionnaireClarification } from '@/data/questionnaire'
-import { submitQuestionnaireApplication } from '@/services/questionnaire'
+import { submitRegistrationData, submitProgressPhotos } from '@/services/questionnaire'
 import { buildTelegramUrl, getDisplayNumber } from '@/utils/contact'
 import { ArrowRight, CheckCircle, MessageCircle } from 'lucide-react'
+import { PhotoUploadField } from '@/components/photo-upload-field'
+import { Spinner } from '@/components/ui/spinner'
+import { REQUIRED_PHOTO_COUNT } from '@/lib/pose-config'
 
 const TRAINERS = [
   {
@@ -19,8 +22,27 @@ const TRAINERS = [
   },
 ] as const
 
+const PHOTO_409_RETRY_DELAY_MS = 3000
+
 function buildTrainerMessage(trainerName: string, fullName: string, phone: string): string {
   return `Hola ${trainerName}, ya me inscribi en tu pagina web. Mi nombre es ${fullName}, mi telefono es ${phone}. ¿Como seguimos?`
+}
+
+async function submitPhotosWithRetry(
+  targetClientId: string,
+  photos: File[],
+): Promise<void> {
+  try {
+    await submitProgressPhotos(targetClientId, photos)
+  } catch (error) {
+    // Check for 409 (Drive folder not ready) — retry once after delay
+    if (error instanceof Error && (error as Error & { is409?: boolean }).is409) {
+      await new Promise((resolve) => setTimeout(resolve, PHOTO_409_RETRY_DELAY_MS))
+      await submitProgressPhotos(targetClientId, photos)
+      return
+    }
+    throw error
+  }
 }
 
 export function ContactForm() {
@@ -29,30 +51,91 @@ export function ContactForm() {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [clientId, setClientId] = useState<string | null>(null)
+  const [photoRetryNeeded, setPhotoRetryNeeded] = useState(false)
+  const [photoUploadStep, setPhotoUploadStep] = useState(false)
+  const [photoSlots, setPhotoSlots] = useState<(File | null)[]>(
+    Array.from({ length: REQUIRED_PHOTO_COUNT }, () => null),
+  )
   const questionnaireRef = useRef<QuestionnaireRef>(null)
   const isDev = import.meta.env.DEV
 
+  // Resume logic (D-01, D-02): check ?id= param first, then localStorage fallback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const idFromParam = params.get('id')
+    if (idFromParam) {
+      setClientId(idFromParam)
+      setPhotoUploadStep(true)
+      return
+    }
+    const stored = localStorage.getItem('ripo_pending_photos')
+    if (stored) {
+      setClientId(stored)
+      setPhotoUploadStep(true)
+    }
+  }, [])
+
+  const handlePhotoSlotChange = useCallback((index: number, file: File | null) => {
+    setPhotoSlots(prev => {
+      const next = [...prev]
+      next[index] = file
+      return next
+    })
+  }, [])
+
   const handleComplete = useCallback(async (payload: QuestionnaireResult) => {
     setResult(payload)
-
     setIsSubmitting(true)
     setSubmissionMessage(null)
     setSubmissionError(null)
     setSubmissionSuccess(false)
+    setPhotoRetryNeeded(false)
 
     try {
-      await submitQuestionnaireApplication(payload)
-      setSubmissionSuccess(true)
-      setSubmissionMessage(
-        '¡Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformación.',
-      )
+      const regResponse = await submitRegistrationData(payload)
+      setClientId(regResponse.clientId)
+      setPhotoUploadStep(true)
+      localStorage.setItem('ripo_pending_photos', regResponse.clientId)
     } catch (error) {
-      setSubmissionError('Ups, no pudimos guardar tu info. Probá de nuevo en unos minutos.')
+      setSubmissionError('Ups, no pudimos guardar tu info. Proba de nuevo en unos minutos.')
       throw error instanceof Error ? error : new Error('questionnaire-submission-failed')
     } finally {
       setIsSubmitting(false)
     }
   }, [])
+
+  const submitPhotos = useCallback(async () => {
+    if (!clientId) return
+    const photos = photoSlots.filter((f): f is File => f !== null)
+    if (photos.length < REQUIRED_PHOTO_COUNT) return
+
+    setIsSubmitting(true)
+    setSubmissionError(null)
+    setPhotoRetryNeeded(false)
+
+    try {
+      await submitPhotosWithRetry(clientId, photos)
+      setSubmissionSuccess(true)
+      setPhotoUploadStep(false)
+      localStorage.removeItem('ripo_pending_photos')
+      history.replaceState({}, '', window.location.pathname)
+      setSubmissionMessage(
+        'Todo listo! El siguiente paso es contactar con tu coach por Telegram y empezar tu transformacion.',
+      )
+    } catch (error) {
+      console.error('Photo submission failed:', error)
+      setPhotoRetryNeeded(true)
+      const is409 = error instanceof Error && (error as Error & { is409?: boolean }).is409
+      setSubmissionError(
+        is409
+          ? 'Estamos preparando tu espacio de entrenamiento. Por favor, reintenta el envio en unos segundos.'
+          : 'Hubo un error subiendo las fotos. Intenta de nuevo.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [clientId, photoSlots])
 
   const firstName =
     typeof result?.answers?.name?.[0]?.value === 'string' &&
@@ -84,7 +167,7 @@ export function ContactForm() {
         </p>
       </div>
 
-      {isDev && (
+      {isDev && !photoUploadStep && !submissionSuccess && (
         <div className="mt-6 flex justify-end">
           <Button
             variant="outline"
@@ -141,6 +224,46 @@ export function ContactForm() {
             Hacé clic en el botón de tu coach para abrir Telegram y empezar.
           </p>
         </div>
+      ) : photoUploadStep ? (
+        <div className="mt-10 rounded-[32px] bg-slate-900 p-8 text-white shadow-2xl md:p-10">
+          <div className="mx-auto max-w-3xl space-y-6">
+            <div className="space-y-2 text-center">
+              <h2 className="text-xl font-semibold">Fotos de evaluacion</h2>
+              <p className="text-sm text-slate-300">
+                Ya tenemos tu informacion. Ahora subi las 6 fotos para que Ripo pueda armar tu plan.
+              </p>
+            </div>
+
+            <PhotoUploadField
+              storedFiles={photoSlots}
+              onFileChange={handlePhotoSlotChange}
+              helperText="Formatos aceptados: JPG, PNG, HEIC."
+            />
+
+            {submissionError && (
+              <div className="rounded-3xl border border-red-500/30 bg-slate-900/60 p-4">
+                <p className="text-sm font-semibold text-red-300">{submissionError}</p>
+              </div>
+            )}
+
+            <Button
+              onClick={submitPhotos}
+              disabled={isSubmitting || photoSlots.some(f => f === null)}
+              className="w-full bg-primary text-white hover:bg-primary/90"
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner className="mr-2" />
+                  Subiendo fotos...
+                </>
+              ) : photoRetryNeeded ? (
+                'Reintentar envio de fotos'
+              ) : (
+                'Enviar fotos'
+              )}
+            </Button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="mt-10 relative">
@@ -155,15 +278,15 @@ export function ContactForm() {
             </div>
             {result && isSubmitting && (
               <div className="pointer-events-auto absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[32px] bg-slate-950/80 p-8 text-center text-white space-y-3">
-                <p className="text-lg font-semibold">Guardando tu aplicación...</p>
+                <p className="text-lg font-semibold">Guardando tu aplicacion...</p>
                 <p className="text-sm text-slate-200">
-                  Estamos enviando tus respuestas. No cierres esta pestaña hasta que terminemos.
+                  Estamos guardando tus respuestas. No cierres esta pestana.
                 </p>
               </div>
             )}
           </div>
 
-          {result && !submissionSuccess && submissionError && (
+          {result && !submissionSuccess && submissionError && !photoUploadStep && (
             <div className="mt-8 rounded-3xl border border-red-500/30 bg-slate-900/60 p-6 text-white shadow-lg shadow-red-500/10">
               <p className="text-sm font-semibold text-red-300">{submissionError}</p>
             </div>

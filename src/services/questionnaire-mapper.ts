@@ -14,8 +14,7 @@ import {
   UserRecordVideo,
   WakeUpDelay,
 } from '@/types/form-cuerpo-fit'
-
-type QuestionnaireAnswerValue = QuestionnaireResultAnswer['value']
+import { POSE_FIELD_NAMES } from '@/lib/pose-config'
 
 const enumMaps = {
   treatment: {
@@ -69,11 +68,6 @@ const enumMaps = {
     ref_friend: 'Recomendado',
     ref_other: 'Otro',
   } as Record<string, string>,
-  userRecordVideo: {
-    video_whatsapp: UserRecordVideo.WHATSAPP,
-    video_uploaded: UserRecordVideo.FORM,
-    video_not_recording: UserRecordVideo.NO,
-  } as Record<string, UserRecordVideo>,
 }
 
 const YES_IDS = {
@@ -92,9 +86,6 @@ const WORKOUT_CONSISTENCY: Record<string, number> = {
   train_5: 5,
   train_6: 6,
 }
-
-const isFileAnswer = (value?: QuestionnaireAnswerValue): value is { type: 'file'; name: string; file?: File } =>
-  Boolean(value && typeof value === 'object' && 'type' in value && value.type === 'file')
 
 const getAnswerEntries = (
   answers: QuestionnaireResult['answers'],
@@ -118,10 +109,11 @@ const getNumberAnswer = (answers: QuestionnaireResult['answers'], questionId: st
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const getDateAnswer = (answers: QuestionnaireResult['answers'], questionId: string): Date => {
+const getDateAnswer = (answers: QuestionnaireResult['answers'], questionId: string): Date | null => {
   const text = getTextAnswer(answers, questionId)
-  const parsed = text ? new Date(text) : new Date()
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  if (!text) return null
+  const parsed = new Date(text)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: string): string[] => {
@@ -135,14 +127,6 @@ const getMultiChoiceIds = (answers: QuestionnaireResult['answers'], questionId: 
     }
     return entry.id ? [entry.id] : []
   })
-}
-
-const getFileFromAnswer = (answers: QuestionnaireResult['answers'], questionId: string): File | undefined => {
-  const value = getAnswerEntries(answers, questionId)[0]?.value
-  if (isFileAnswer(value)) {
-    return value.file
-  }
-  return undefined
 }
 
 const sanitizeNumber = (value?: string): string => value?.replace(/\D/g, '') ?? ''
@@ -271,14 +255,21 @@ const mapCondition = (answers: QuestionnaireResult['answers']): Condition | stri
   if (!selections.length || selections.includes('cond_none_other')) {
     return null
   }
-  const mapped = selections.map((id) => enumMaps.condition[id]).find(Boolean)
-  if (mapped) {
-    return mapped
-  }
+
+  // Map all enum selections and join them — backend accepts comma-separated values
+  // (consistent with how requireTreatmentCondition is handled in flattenDtoForBackend)
+  const mapped = selections
+    .map((id) => enumMaps.condition[id])
+    .filter(Boolean)
+
+  const parts: string[] = mapped.map((v) => v as string)
+
   if (selections.includes('cond_other_extra')) {
-    return getTextAnswer(answers, 'other_health_conditions_detail') || null
+    const detail = getTextAnswer(answers, 'other_health_conditions_detail')
+    if (detail) parts.push(detail)
   }
-  return null
+
+  return parts.length ? parts.join(',') : null
 }
 
 const mapSleepProblem = (
@@ -352,20 +343,6 @@ const mapAddiction = (answers: QuestionnaireResult['answers']): {
   }
 }
 
-const mapVideoPreference = (
-  answers: QuestionnaireResult['answers'],
-  videoFile?: File,
-): UserRecordVideo => {
-  const selected = enumMaps.userRecordVideo[getSingleChoiceId(answers, 'video_confirmation') ?? '']
-  if (selected) {
-    return selected
-  }
-  if (videoFile) {
-    return UserRecordVideo.FORM
-  }
-  return UserRecordVideo.NO
-}
-
 const mapWakeUpDelay = (answers: QuestionnaireResult['answers']): WakeUpDelay | string | null =>
   enumMaps.wakeUp[getSingleChoiceId(answers, 'wake_up_time') ?? ''] ?? null
 
@@ -386,12 +363,8 @@ const mapReferral = (answers: QuestionnaireResult['answers']): string => {
   return `${label} - ${detail}`
 }
 
-const mapUserRecordVideoFile = (answers: QuestionnaireResult['answers']): File | undefined =>
-  getFileFromAnswer(answers, 'video_upload')
-
 export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   dto: FormCuerpoFitDto
-  videoFile?: File
 } => {
   const answers = result.answers ?? {}
   const recaptchaToken = result.recaptchaToken
@@ -406,7 +379,6 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
   const whatsappOtherDetail = getTextAnswer(answers, 'whatsapp_other_detail')
   const otherTreatmentDetail = getTextAnswer(answers, 'health_conditions_other_detail')
   const otherConditionDetail = getTextAnswer(answers, 'other_health_conditions_detail')
-  const videoFile = mapUserRecordVideoFile(answers)
 
   const { addiction, addictionAmount, addictionFrequency, detail: addictionDetail } = mapAddiction(answers)
   const supplementDescription = getTextAnswer(answers, 'supplement')
@@ -427,12 +399,17 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     .filter(Boolean)
     .join('\n\n')
 
+  const dob = getDateAnswer(answers, 'birthday')
+  if (!dob) {
+    throw new Error('Fecha de nacimiento requerida. Por favor ingresá tu fecha de nacimiento.')
+  }
+
   const dto: FormCuerpoFitDto = {
     email: getTextAnswer(answers, 'email'),
     name,
     lastName,
     sex: mapGenderToSexo(getSingleChoiceId(answers, 'gender')),
-    dob: getDateAnswer(answers, 'birthday'),
+    dob,
     height: getNumberAnswer(answers, 'height') ?? 0,
     weight: getNumberAnswer(answers, 'weight') ?? 0,
     work: getTextAnswer(answers, 'job') || 'No informado',
@@ -458,20 +435,91 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     supplementUnit: supplementUnit ?? null,
     supplementHowMany: supplementAmount,
     supplementHowOften: supplementFrequency ?? null,
-    userRecordVideo: mapVideoPreference(answers, videoFile),
+    userRecordVideo: UserRecordVideo.NO,  // Always NO -- video removed
     country: getTextAnswer(answers, 'country') || 'No informado',
     city: getTextAnswer(answers, 'city') || 'No informado',
     howDidUserEndUpHere: mapReferral(answers),
-    recaptchaToken,
+    recaptchaToken,  // MUST remain -- extracted from result.recaptchaToken
     instagramUser: ensureInstagramHandle(getTextAnswer(answers, 'instagram')),
     phone: buildPhone(answers),
     lastComment: notes ? notes.slice(0, 1000) : undefined,
   }
 
-  return {
-    dto,
-    videoFile,
+  return { dto }
+}
+
+/**
+ * Transforms FormCuerpoFitDto into a flat object matching backend ClientApplicationDto.
+ *
+ * The backend expects:
+ * - phone: flattened to top-level countryCode, number, fullNumber (no nested phone object)
+ * - dob: ISO date string (not Date object)
+ * - requireTreatmentCondition: comma-joined string (not array)
+ * - sleepProblem: comma-joined string (not array)
+ * - condition: string (not array -- already single-value but ensure string)
+ * - null/undefined fields: omitted entirely (backend uses @IsOptional)
+ */
+const flattenDtoForBackend = (dto: FormCuerpoFitDto): Record<string, unknown> => {
+  // Destructure phone out -- it must NOT appear as a key in the output
+  const { phone, dob, requireTreatmentCondition, sleepProblem, condition, ...rest } = dto
+
+  const flat: Record<string, unknown> = { ...rest }
+
+  // Flatten phone to top-level fields
+  flat.countryCode = phone.countryCode
+  flat.number = phone.number
+  if (phone.fullNumber) {
+    flat.fullNumber = phone.fullNumber
   }
+
+  // Convert Date to ISO string (e.g., "1990-05-15T00:00:00.000Z")
+  flat.dob = dob instanceof Date ? dob.toISOString() : String(dob)
+
+  // Convert arrays to comma-separated strings
+  if (requireTreatmentCondition != null) {
+    flat.requireTreatmentCondition = Array.isArray(requireTreatmentCondition)
+      ? requireTreatmentCondition.join(',')
+      : String(requireTreatmentCondition)
+  }
+
+  if (sleepProblem != null) {
+    flat.sleepProblem = Array.isArray(sleepProblem)
+      ? sleepProblem.join(',')
+      : String(sleepProblem)
+  }
+
+  if (condition != null) {
+    flat.condition = String(condition)
+  }
+
+  return flat
+}
+
+/**
+ * Builds the JSON body for the registration request (POST /cuerpo-fit).
+ * Returns a flat Record<string, unknown> matching backend ClientApplicationDto:
+ * phone is flattened to countryCode/number/fullNumber, dob is an ISO string,
+ * requireTreatmentCondition and sleepProblem are comma-separated strings.
+ */
+export const buildRegistrationJsonBody = (result: QuestionnaireResult): Record<string, unknown> => {
+  const { dto } = mapQuestionnaireResultToDto(result)
+  return flattenDtoForBackend(dto)
+}
+
+/**
+ * Builds multipart FormData for the progress photos request
+ * (POST /clients/:clientId/progress-photos).
+ * Appends each photo file under its pose field name and adds context=registration.
+ */
+export const buildPhotosFormData = (photos: File[]): FormData => {
+  const fd = new FormData()
+  POSE_FIELD_NAMES.forEach((pose, i) => {
+    if (photos[i]) {
+      fd.append(pose, photos[i], photos[i].name)
+    }
+  })
+  fd.append('context', 'registration')
+  return fd
 }
 
 const appendValue = (formData: FormData, key: string, value: unknown) => {
@@ -497,8 +545,12 @@ const appendPhone = (formData: FormData, phone: PhoneDto) => {
   }
 }
 
+/**
+ * Kept for backward compatibility (mirror service uses it).
+ * Video file appending removed -- video replaced by 6 photos.
+ */
 export const buildFormCuerpoFitFormData = (result: QuestionnaireResult): FormData => {
-  const { dto, videoFile } = mapQuestionnaireResultToDto(result)
+  const { dto } = mapQuestionnaireResultToDto(result)
   const formData = new FormData()
 
   ;(Object.entries(dto) as [keyof FormCuerpoFitDto, FormCuerpoFitDto[keyof FormCuerpoFitDto]][]).forEach(
@@ -511,11 +563,5 @@ export const buildFormCuerpoFitFormData = (result: QuestionnaireResult): FormDat
     },
   )
 
-  if (videoFile) {
-    formData.append('file', videoFile, videoFile.name)
-  }
-
   return formData
 }
-
-

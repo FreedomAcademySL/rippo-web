@@ -22,8 +22,7 @@ export const questionnaireClarification = (
       estés listo. Prefiero que llegues cuando sea tu momento real.
     </p>
     <p>
-      Al finalizar vas a recibir un link directo a mi {getContactAppName()} para enviarme el video de
-      evaluación corporal y coordinar tu plan personalizado.
+      Al finalizar vas a recibir un link directo a mi {getContactAppName()} para coordinar tu plan personalizado.
     </p>
   </div>
 )
@@ -81,47 +80,6 @@ const LATAM_CALLING_CODES: QuestionnaireSelectOption[] = [
 
 export const questionnaireQuestions: QuestionnaireQuestion[] = [
   {
-    id: 'time_commitment',
-    title: '¿Tenés realmente el tiempo en tu día para enfocarte en esto?',
-    category: 'compromiso',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      {
-        id: 'time_yes',
-        text: '¡Sí! Tengo tiempo para entrenar y para mejorar mis comidas 💪🏼',
-        value: 2,
-      },
-      {
-        id: 'time_no',
-        text: 'No tengo tiempo para esto, así que no contestaré este formulario',
-        value: 0,
-        blocksProgress: true,
-      },
-    ],
-  },
-  {
-    id: 'start_now',
-    title:
-      '¿Podés empezar hoy o mañana mismo tu cambio físico (entrenamiento, comidas, y demás) con mi ayuda, paso a paso?',
-    category: 'compromiso',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      {
-        id: 'start_yes',
-        text: 'Sí Ripo, puedo empezar hoy/mañana mismo 💪🏼',
-        value: 2,
-      },
-      {
-        id: 'start_no',
-        text: 'No puedo empezar ni hoy ni mañana mismo, así que no contestaré este formulario todavía',
-        value: 0,
-        blocksProgress: true,
-      },
-    ],
-  },
-  {
     id: 'injury',
     title:
       '¿Tenés HOY alguna lesión o limitación que te impida realizar ejercicio y no esté curada o tratada?',
@@ -141,6 +99,181 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
         blocksProgress: true,
       },
     ],
+  },
+  {
+    id: 'name',
+    title: '¿Tu Nombre?',
+    category: 'datos',
+    required: true,
+    type: 'text',
+    minLength: 3,
+    maxLength: 80,
+    placeholder: 'Joaquin',
+  },
+  {
+    id: 'lastName',
+    title: '¿Tu Apellido?',
+    category: 'datos',
+    required: true,
+    type: 'text',
+    minLength: 3,
+    maxLength: 80,
+    placeholder: 'Ripoli',
+  },
+  {
+    id: 'gender',
+    title: '¿Género?',
+    category: 'datos',
+    required: true,
+    type: 'single-choice',
+    answers: [
+      { id: 'gender_male', text: 'Hombre', value: 1 },
+      { id: 'gender_female', text: 'Mujer', value: 1 },
+    ],
+  },
+  {
+    id: 'birthday',
+    title: '¿Cuándo es tu fecha de nacimiento? (dd/mm/yyyy)',
+    category: 'datos',
+    required: true,
+    type: 'date',
+    minAge: 10,
+    maxAge: 99,
+  },
+  {
+    id: 'email',
+    title: '¿Cuál es tu email?',
+    category: 'contacto',
+    required: true,
+    type: 'text',
+    minLength: 5,
+    maxLength: 254,
+    placeholder: 'ripo@email.com',
+    helperText: 'Usá el mail que revisás todos los días.',
+    pattern:
+      "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+    inputMode: 'email',
+  },
+  {
+    id: 'instagram',
+    title: '¿Cuál es tu usuario de Instagram?',
+    category: 'contacto',
+    required: false,
+    type: 'text',
+    minLength: 4,
+    maxLength: 31,
+    placeholder: '@joa.ripoli',
+    helperText: 'Debe empezar con @ y tener entre 3 y 30 caracteres.',
+    pattern: '^@[A-Za-z0-9._]{3,30}$',
+    inputMode: 'text',
+  },
+  {
+    id: 'whatsapp_country_code',
+    title: 'Código internacional de tu telefono',
+    category: 'contacto',
+    required: true,
+    type: 'select',
+    placeholder: 'Elegí tu prefijo (+54)',
+    helperText: 'Mostramos el signo + para evitar confusiones. Si no ves el tuyo, elegí "Otro código" y contanos en el mensaje final.',
+    selectOptions: LATAM_CALLING_CODES,
+  },
+  {
+    id: 'whatsapp_number',
+    title: 'Número local de telefono (sin el código de país)',
+    category: 'contacto',
+    required: true,
+    type: 'phone',
+    placeholder: '1122334455',
+    helperText: 'Sólo números, sin espacios ni prefijos.',
+    pattern: '^\\d{6,15}$',
+    inputMode: 'numeric',
+  },
+  {
+    id: 'whatsapp_confirmation',
+    title: '¿Estás seguro que escribiste bien tu número de telefono? A ese número me voy a comunicar con vos para poder empezar.',
+    category: 'compromiso',
+    required: true,
+    type: 'single-choice',
+    answers: [
+      { id: 'whatsapp_confirmation_yes', text: 'Sí Ripo, estaré atento a la siguiente pantalla para entrar y empezar mi cambio 💪🏼', value: 3 },
+      { id: 'whatsapp_confirmation_no', text: 'No Ripo, voy a volver atrás para corregir mi número de telefono.', value: 0, blocksProgress: true },
+    ],
+  },
+  {
+    id: 'country',
+    title: 'País',
+    category: 'datos',
+    required: true,
+    type: 'select',
+    placeholder: 'Seleccioná tu país',
+    helperText: '',
+    selectOptions: LATAM_COUNTRIES,
+  },
+  {
+    id: 'city',
+    title: 'Ciudad',
+    category: 'datos',
+    required: true,
+    type: 'text',
+    minLength: 2,
+    maxLength: 80,
+    placeholder: 'Buenos Aires',
+  },
+  {
+    id: 'job',
+    title: '¿De qué trabajás?',
+    category: 'contexto',
+    required: true,
+    type: 'text',
+    minLength: 3,
+    maxLength: 300,
+    placeholder: 'Trabajo como abogado en una oficina. Estudio. No trabajo.',
+  },
+  {
+    id: 'goal',
+    title: '¿Qué querés lograr con mi ayuda?',
+    category: 'contexto',
+    required: true,
+    type: 'textarea',
+    minLength: 20,
+    maxLength: 1000,
+    placeholder: 'Contame qué te motiva',
+  },
+  {
+    id: 'whyGoal',
+    title: '¿Por qué lo estás buscando lograrlo?',
+    category: 'contexto',
+    required: true,
+    type: 'textarea',
+    minLength: 20,
+    maxLength: 1000,
+    placeholder: 'Contame por qué lo estás buscando',
+  },
+  {
+    id: 'height',
+    title: '¿Cuánto medís en centímetros?',
+    category: 'datos',
+    required: true,
+    type: 'number',
+    placeholder: '178',
+    helperText: 'Ingresá sólo el número',
+    min: 40,
+    max: 300,
+    step: 1,
+    inputMode: 'numeric',
+  },
+  {
+    id: 'weight',
+    title: '¿Cuánto pesás en kilogramos?',
+    category: 'datos',
+    required: true,
+    type: 'number',
+    placeholder: '80.5',
+    helperText: 'Si no sabés, anotá el último peso que recuerdes.',
+    min: 20,
+    max: 300,
+    step: 0.1,
+    inputMode: 'decimal',
   },
   {
     id: 'health_conditions',
@@ -211,102 +344,88 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       },
     ],
   },
-
   {
-    id: 'name',
-    title: '¿Tu Nombre?',
-    category: 'datos',
+    id: 'other_health_conditions',
+    title: '¿Tenés HOY alguna de estas otras condiciones?',
+    category: 'salud',
     required: true,
-    type: 'text',
-    minLength: 3,
-    maxLength: 80,
-    placeholder: 'Joaquin',
-  },
-  {
-    id: 'lastName',
-    title: '¿Tu Apellido?',
-    category: 'datos',
-    required: true,
-    type: 'text',
-    minLength: 3,
-    maxLength: 80,
-    placeholder: 'Ripoli',
-  },
-  {
-    id: 'gender',
-    title: '¿Género?',
-    category: 'datos',
-    required: true,
-    type: 'single-choice',
+    type: 'multi-choice',
+    multiValueFormat: 'array',
     answers: [
-      { id: 'gender_male', text: 'Hombre', value: 1 },
-      { id: 'gender_female', text: 'Mujer', value: 1 },
+      { id: 'cond_cholesterol', text: 'Colesterol o triglicéridos elevados' },
+      { id: 'cond_gastritis', text: 'Gastritis o acidez' },
+      { id: 'cond_constipation', text: 'Constipación/Estreñimiento o diarrea' },
+      { id: 'cond_colon', text: 'Colon irritable' },
+      { id: 'cond_none_other', text: 'No tengo ninguna', value: 3 },
+      { id: 'cond_other_extra', text: 'Otro' },
     ],
   },
   {
-    id: 'birthday',
-    title: '¿Cuándo es tu fecha de nacimiento? (dd/mm/yyyy)',
-    category: 'datos',
-    required: true,
-    type: 'date',
-    minAge: 10,
-    maxAge: 99,
-  },
-  {
-    id: 'height',
-    title: '¿Cuánto medís en centímetros?',
-    category: 'datos',
-    required: true,
-    type: 'number',
-    placeholder: '178',
-    helperText: 'Ingresá sólo el número',
-    min: 40,
-    max: 300,
-    step: 1,
-    inputMode: 'numeric',
-  },
-  {
-    id: 'weight',
-    title: '¿Cuánto pesás en kilogramos?',
-    category: 'datos',
-    required: true,
-    type: 'number',
-    placeholder: '80.5',
-    helperText: 'Si no sabés, anotá el último peso que recuerdes.',
-    min: 20,
-    max: 300,
-    step: 0.1,
-    inputMode: 'decimal',
-  },
-  {
-    id: 'job',
-    title: '¿De qué trabajás?',
-    category: 'contexto',
-    required: true,
+    id: 'other_health_conditions_detail',
+    title: 'Otro (otras condiciones)',
+    category: 'salud',
     type: 'text',
     minLength: 3,
-    maxLength: 300,
-    placeholder: 'Trabajo como abogado en una oficina. Estudio. No trabajo.',
+    maxLength: 100,
+    placeholder: 'Detallá cualquier otra condición',
+    dependsOn: {
+      questionId: 'other_health_conditions',
+      allowedAnswerIds: ['cond_other_extra'],
+    },
   },
   {
-    id: 'goal',
-    title: '¿Qué querés lograr con mi ayuda?',
-    category: 'contexto',
+    id: 'sleep_issues',
+    title: '¿Qué problemas tenés para dormir? (Elegí todos los que apliquen)',
+    category: 'habitos',
     required: true,
-    type: 'textarea',
-    minLength: 20,
-    maxLength: 1000,
-    placeholder: 'Contame qué te motiva',
+    type: 'multi-choice',
+    multiValueFormat: 'array',
+    answers: [
+      { id: 'sleep_bathroom', text: 'Me despierto a la madrugada para ir al baño' },
+      { id: 'sleep_unknown', text: 'Me despierto y no sé por qué' },
+      { id: 'sleep_fall_asleep', text: 'Tardo más de lo que me gustaría en dormirme' },
+      { id: 'sleep_noise', text: 'Me despierto por ruidos, calor u otros factores' },
+      { id: 'sleep_snore', text: 'Tengo ronquidos' },
+      { id: 'sleep_none', text: 'No tengo problemas, duermo como un bebé 😴', value: 3 },
+      { id: 'sleep_other', text: 'Otro' },
+    ],
   },
   {
-    id: 'whyGoal',
-    title: '¿Por qué lo estás buscando lograrlo?',
-    category: 'contexto',
+    id: 'sleep_other_detail',
+    title: 'Otro (problemas de sueño)',
+    category: 'habitos',
+    type: 'text',
+    minLength: 3,
+    maxLength: 100,
+    placeholder: 'Describí cualquier otro problema para dormir',
+    dependsOn: {
+      questionId: 'sleep_issues',
+      allowedAnswerIds: ['sleep_other'],
+    },
+  },
+  {
+    id: 'wake_up_time',
+    title: '¿Cuánto tardás en levantarte de la cama luego de despertarte?',
+    category: 'habitos',
     required: true,
-    type: 'textarea',
-    minLength: 20,
-    maxLength: 1000,
-    placeholder: 'Contame por qué lo estás buscando',
+    type: 'single-choice',
+    answers: [
+      { id: 'wake_immediate', text: 'Me levanto al instante', value: 3 },
+      { id: 'wake_5', text: '5 minutos', value: 2 },
+      { id: 'wake_10', text: '10 minutos', value: 1 },
+      { id: 'wake_more', text: 'Más de 10 minutos', value: 0 },
+    ],
+  },
+  {
+    id: 'screens_in_bed',
+    title: '¿Ves pantallas (compu, televisión, celular) cuando te acostás en la cama?',
+    category: 'habitos',
+    required: true,
+    type: 'single-choice',
+    answers: [
+      { id: 'screens_yes', text: 'Sí 😬', value: 0 },
+      { id: 'screens_no', text: 'No, uso la cama sólo para dormir 😴', value: 3 },
+    ],
   },
   {
     id: 'body_scale',
@@ -392,7 +511,6 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       { id: 'vice_none', text: 'No tengo ningún vicio', value: 3 },
     ],
   },
-
   {
     id: 'vices_frequency',
     title: '¿Cada cuánto lo consumís?',
@@ -416,94 +534,10 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
       { id: AddictionFrequency.MONTH, text: 'Cada mes' },
     ],
   },
-
-  {
-    id: 'other_health_conditions',
-    title: '¿Tenés HOY alguna de estas otras condiciones?',
-    category: 'salud',
-    required: true,
-    type: 'multi-choice',
-    multiValueFormat: 'array',
-    answers: [
-      { id: 'cond_cholesterol', text: 'Colesterol o triglicéridos elevados' },
-      { id: 'cond_gastritis', text: 'Gastritis o acidez' },
-      { id: 'cond_constipation', text: 'Constipación/Estreñimiento o diarrea' },
-      { id: 'cond_colon', text: 'Colon irritable' },
-      { id: 'cond_none_other', text: 'No tengo ninguna', value: 3 },
-      { id: 'cond_other_extra', text: 'Otro' },
-    ],
-  },
-  {
-    id: 'other_health_conditions_detail',
-    title: 'Otro (otras condiciones)',
-    category: 'salud',
-    type: 'text',
-    minLength: 3,
-    maxLength: 100,
-    placeholder: 'Detallá cualquier otra condición',
-    dependsOn: {
-      questionId: 'other_health_conditions',
-      allowedAnswerIds: ['cond_other_extra'],
-    },
-  },
-  {
-    id: 'sleep_issues',
-    title: '¿Qué problemas tenés para dormir? (Elegí todos los que apliquen)',
-    category: 'habitos',
-    required: true,
-    type: 'multi-choice',
-    multiValueFormat: 'array',
-    answers: [
-      { id: 'sleep_bathroom', text: 'Me despierto a la madrugada para ir al baño' },
-      { id: 'sleep_unknown', text: 'Me despierto y no sé por qué' },
-      { id: 'sleep_fall_asleep', text: 'Tardo más de lo que me gustaría en dormirme' },
-      { id: 'sleep_noise', text: 'Me despierto por ruidos, calor u otros factores' },
-      { id: 'sleep_snore', text: 'Tengo ronquidos' },
-      { id: 'sleep_none', text: 'No tengo problemas, duermo como un bebé 😴', value: 3 },
-      { id: 'sleep_other', text: 'Otro' },
-    ],
-  },
-  {
-    id: 'sleep_other_detail',
-    title: 'Otro (problemas de sueño)',
-    category: 'habitos',
-    type: 'text',
-    minLength: 3,
-    maxLength: 100,
-    placeholder: 'Describí cualquier otro problema para dormir',
-    dependsOn: {
-      questionId: 'sleep_issues',
-      allowedAnswerIds: ['sleep_other'],
-    },
-  },
-  {
-    id: 'wake_up_time',
-    title: '¿Cuánto tardás en levantarte de la cama luego de despertarte?',
-    category: 'habitos',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      { id: 'wake_immediate', text: 'Me levanto al instante', value: 3 },
-      { id: 'wake_5', text: '5 minutos', value: 2 },
-      { id: 'wake_10', text: '10 minutos', value: 1 },
-      { id: 'wake_more', text: 'Más de 10 minutos', value: 0 },
-    ],
-  },
-  {
-    id: 'screens_in_bed',
-    title: '¿Ves pantallas (compu, televisión, celular) cuando te acostás en la cama?',
-    category: 'habitos',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      { id: 'screens_yes', text: 'Sí 😬', value: 0 },
-      { id: 'screens_no', text: 'No, uso la cama sólo para dormir 😴', value: 3 },
-    ],
-  },
   {
     id: 'training_days',
     title:
-      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (elegí “3 días” para empezar)',
+      '¿Cuántos días por semana estás dispuesto a entrenar SIN FALTAR? (elegí "3 días" para empezar)',
     category: 'compromiso',
     required: true,
     type: 'single-choice',
@@ -580,70 +614,6 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     ],
   },
   {
-    id: 'video_upload',
-    title: 'Subí tu video de 45 segundos imitando a Ripo',
-    category: 'logistica',
-    required: true,
-    type: 'file',
-    description: (
-      <div className="space-y-4 text-sm text-slate-200">
-        <p>
-          Andá a algún baño o habitación y grabá el siguiente video (imitando cada segundo de mi video
-          que aparece abajo) para armar tu plan según cuánta grasa y cuanto músculo tengas 💪🏼
-        </p>
-        <p>
-          No compartiremos en ninguna red social tu video a menos que vos nos lo permitas por escrito.
-          No lo grabes al espejo, sólo usá tu cámara selfie (la cámara de adelante de tu celular) e
-          imitá el video que aparece más abajo.
-        </p>
-        <ul className="list-disc space-y-1 pl-4">
-          <li>🙋🏻‍♂️ Hombres: Con el torso desnudo y short/ropa interior.</li>
-          <li>
-            🙋🏻‍♀️ Mujeres: Con top y short o ropa interior, mostrando todo el abdomen hasta por debajo
-            del ombligo.
-          </li>
-          <li>⏰ Tiempo que tardarás en hacerlo: 45 segundos.</li>
-        </ul>
-        <div className="aspect-video w-full overflow-hidden rounded-xl border border-white/10">
-          <iframe
-            className="h-full w-full"
-            src="https://www.youtube.com/embed/CcyUoPUNWgM"
-            title="Video de referencia"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-        <p>Subilo directamente acá. Nosotros comprimimos y optimizamos el video automáticamente.</p>
-      </div>
-    ),
-    helperText:
-      'Formatos aceptados: MP4, MOV, MKV o WEBM. Peso máximo recomendado: 250 MB. Te avisamos cuando termine de comprimir.',
-    accept: 'video/*',
-    maxFiles: 1,
-    enableVideoCompression: true,
-  },
-  {
-    id: 'country',
-    title: 'País',
-    category: 'datos',
-    required: true,
-    type: 'select',
-    placeholder: 'Seleccioná tu país',
-    helperText: '',
-    selectOptions: LATAM_COUNTRIES,
-  },
-  {
-    id: 'city',
-    title: 'Ciudad',
-    category: 'datos',
-    required: true,
-    type: 'text',
-    minLength: 2,
-    maxLength: 80,
-    placeholder: 'Buenos Aires',
-  },
-
-  {
     id: 'referral',
     title: '¿Cómo llegaste acá?',
     category: 'contexto',
@@ -671,65 +641,6 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     },
   },
   {
-    id: 'email',
-    title: '¿Cuál es tu email?',
-    category: 'contacto',
-    required: true,
-    type: 'text',
-    minLength: 5,
-    maxLength: 254,
-    placeholder: 'ripo@email.com',
-    helperText: 'Usá el mail que revisás todos los días.',
-    pattern:
-      "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
-    inputMode: 'email',
-  },
-  {
-    id: 'instagram',
-    title: '¿Cuál es tu usuario de Instagram?',
-    category: 'contacto',
-    required: false,
-    type: 'text',
-    minLength: 4,
-    maxLength: 31,
-    placeholder: '@joa.ripoli',
-    helperText: 'Debe empezar con @ y tener entre 3 y 30 caracteres.',
-    pattern: '^@[A-Za-z0-9._]{3,30}$',
-    inputMode: 'text',
-  },
-  {
-    id: 'whatsapp_country_code',
-    title: 'Código internacional de tu telefono',
-    category: 'contacto',
-    required: true,
-    type: 'select',
-    placeholder: 'Elegí tu prefijo (+54)',
-    helperText: 'Mostramos el signo + para evitar confusiones. Si no ves el tuyo, elegí "Otro código" y contanos en el mensaje final.',
-    selectOptions: LATAM_CALLING_CODES,
-  },
-  {
-    id: 'whatsapp_number',
-    title: 'Número local de telefono (sin el código de país)',
-    category: 'contacto',
-    required: true,
-    type: 'phone',
-    placeholder: '1122334455',
-    helperText: 'Sólo números, sin espacios ni prefijos.',
-    pattern: '^\\d{6,15}$',
-    inputMode: 'numeric',
-  },
-  {
-    id: 'whatsapp_confirmation',
-    title: '¿Estás seguro que escribiste bien tu número de telefono? A ese número me voy a comunicar con vos para poder empezar.',
-    category: 'compromiso',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      { id: 'whatsapp_confirmation_yes', text: 'Sí Ripo, estaré atento a la siguiente pantalla para entrar y empezar mi cambio 💪🏼', value: 3 },
-      { id: 'whatsapp_confirmation_no', text: 'No Ripo, voy a volver atrás para corregir mi número de telefono.', value: 0, blocksProgress: true },
-    ],
-  },
-  {
     id: 'final_message',
     title: 'Por último: ¿Algo que quieras comentarme antes de armar tu plan?',
     category: 'contexto',
@@ -737,27 +648,6 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     minLength: 0,
     maxLength: 800,
     placeholder: 'Si no hay nada, podés dejarlo vacío',
-  },
-  {
-    id: 'start_commitment',
-    title:
-      `Luego de tocar "ENVIAR" tendrás que entrar al link que aparece para ir a mi ${getContactAppName()}. ¿Vas a entrar al link para empezar tu cambio físico?`,
-    category: 'compromiso',
-    required: true,
-    type: 'single-choice',
-    answers: [
-      {
-        id: 'start_link_yes',
-        text: 'Sí Ripo, estaré atento a la siguiente pantalla para entrar y empezar mi cambio 💪🏼',
-        value: 3,
-      },
-      {
-        id: 'start_link_no',
-        text: 'No le prestaré atención a la siguiente pantalla, por lo que no empezaré mi cambio físico.',
-        value: 0,
-        blocksProgress: true,
-      },
-    ],
   },
 ]
 
