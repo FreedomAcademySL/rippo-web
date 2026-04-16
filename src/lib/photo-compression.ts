@@ -15,20 +15,20 @@ export function isHeic(file: File): boolean {
 /**
  * Converts a HEIC/HEIF file to JPEG before the Canvas compression pipeline.
  * If conversion fails for any reason, falls back to the original file (D-03).
+ *
+ * Uses heic-to (bundles libheif 1.21.2) instead of the abandoned heic2any
+ * (bundled libheif 0.4.5, rejects iOS 18 HEIC containers). Dynamic import
+ * keeps the WASM chunk out of the main bundle and out of the jsdom module
+ * graph for non-browser test environments.
  */
 async function convertHeicToJpeg(file: File): Promise<File> {
   try {
-    // Dynamic import keeps heic2any (and its Worker init) out of the module
-    // graph unless a HEIC file is actually selected. This also keeps the
-    // module importable in non-browser environments (jsdom tests for isHeic).
-    const { default: heic2any } = await import('heic2any')
-    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 1 })
-    // heic2any can return a Blob or Blob[] depending on multi-image HEIC
-    const single = Array.isArray(blob) ? blob[0] : blob
+    const { heicTo } = await import('heic-to')
+    const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: 1 })
     const jpegName = file.name.replace(/\.[^.]+$/, '.jpg')
-    return new File([single], jpegName, { type: 'image/jpeg' })
+    return new File([blob], jpegName, { type: 'image/jpeg' })
   } catch {
-    // heic2any failed — return original so the user is not blocked (D-03)
+    // heic-to failed — return original so the user is not blocked (D-03)
     return file
   }
 }
