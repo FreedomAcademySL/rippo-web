@@ -78,6 +78,7 @@ const YES_IDS = {
   junk_food: 'junk_yes',
   water: 'water_yes',
   screens_in_bed: 'screens_yes',
+  walking_enough: 'walking_enough_yes',
 }
 
 const WORKOUT_CONSISTENCY: Record<string, number> = {
@@ -404,6 +405,9 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     throw new Error('Fecha de nacimiento requerida. Por favor ingresá tu fecha de nacimiento.')
   }
 
+  const sleepIds = getMultiChoiceIds(answers, 'sleep_issues')
+  const hasSleepProblems = sleepIds.length > 0 && !sleepIds.includes('sleep_none')
+
   const dto: FormCuerpoFitDto = {
     email: getTextAnswer(answers, 'email'),
     name,
@@ -419,6 +423,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     foodScale: mapBooleanById(answers, 'food_scale'),
     cookingSpray: mapBooleanById(answers, 'spray_oil'),
     stepCountingApp: mapBooleanById(answers, 'steps_app'),
+    walksEnoughSteps: mapBooleanById(answers, 'walking_enough'),
     eatsJunkFoodMoreThan4PerWeek: mapBooleanById(answers, 'junk_food'),
     drinkEnoughWaterPerDay: mapBooleanById(answers, 'water'),
     addiction,
@@ -427,6 +432,7 @@ export const mapQuestionnaireResultToDto = (result: QuestionnaireResult): {
     requireTreatmentCondition: mapRequireTreatmentCondition(answers),
     condition: mapCondition(answers),
     sleepProblem: mapSleepProblem(answers),
+    hasSleepProblems,
     getUpTime: mapWakeUpDelay(answers),
     screenBeforeSleep: mapBooleanById(answers, 'screens_in_bed'),
     workoutConsistency: mapWorkoutConsistency(answers),
