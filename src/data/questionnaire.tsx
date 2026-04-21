@@ -473,6 +473,17 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     ],
   },
   {
+    id: 'walking_enough',
+    title: '¿Caminás entre 6.000 y 10.000 pasos por día?',
+    category: 'habitos',
+    required: true,
+    type: 'single-choice',
+    answers: [
+      { id: 'walking_enough_yes', text: 'Sí 😉', value: 2 },
+      { id: 'walking_enough_no', text: 'Todavía no', value: 0 },
+    ],
+  },
+  {
     id: 'junk_food',
     title: '¿Comés más de 4 veces por semana comida chatarra o no saludable?',
     category: 'habitos',
