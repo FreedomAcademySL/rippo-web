@@ -34,6 +34,7 @@ function buildMinimalResult(overrides?: Partial<QuestionnaireResult>): Questionn
     steps_app: [{ id: 'steps_yes', value: 2 }],
     junk_food: [{ id: 'junk_no', value: 2 }],
     water: [{ id: 'water_yes', value: 2 }],
+    walking_enough: [{ id: 'walking_enough_yes', value: 2 }],
     vices: [{ id: 'vice_none', text: 'No tengo ningun vicio', value: 3 }],
     training_days: [{ id: 'train_3', value: 1 }],
     training_location: [{ id: 'train_gym', value: 3 }],
@@ -129,6 +130,47 @@ describe('buildRegistrationJsonBody', () => {
     expect(body.stepCountingApp).toBe(true)
     expect(body.eatsJunkFoodMoreThan4PerWeek).toBe(false)
     expect(body.drinkEnoughWaterPerDay).toBe(true)
+    expect(body.walksEnoughSteps).toBe(true)
+  })
+
+  it("produces hasSleepProblems: false for sleep_issues=['sleep_none']", () => {
+    const result = buildMinimalResult({
+      answers: { sleep_issues: [{ id: 'sleep_none', value: 3 }] },
+    })
+    const body = buildRegistrationJsonBody(result)
+    expect(body.hasSleepProblems).toBe(false)
+  })
+
+  it("produces hasSleepProblems: true for sleep_issues=['sleep_bathroom']", () => {
+    const result = buildMinimalResult({
+      answers: { sleep_issues: [{ id: 'sleep_bathroom', value: 1 }] },
+    })
+    const body = buildRegistrationJsonBody(result)
+    expect(body.hasSleepProblems).toBe(true)
+  })
+
+  it('produces hasSleepProblems: false for empty sleep_issues (A1 — empty array case)', () => {
+    const result = buildMinimalResult({
+      answers: { sleep_issues: [] },
+    })
+    const body = buildRegistrationJsonBody(result)
+    expect(body.hasSleepProblems).toBe(false)
+  })
+
+  it('produces walksEnoughSteps: true for walking_enough_yes', () => {
+    const result = buildMinimalResult({
+      answers: { walking_enough: [{ id: 'walking_enough_yes', value: 2 }] },
+    })
+    const body = buildRegistrationJsonBody(result)
+    expect(body.walksEnoughSteps).toBe(true)
+  })
+
+  it('produces walksEnoughSteps: false for walking_enough_no', () => {
+    const result = buildMinimalResult({
+      answers: { walking_enough: [{ id: 'walking_enough_no', value: 0 }] },
+    })
+    const body = buildRegistrationJsonBody(result)
+    expect(body.walksEnoughSteps).toBe(false)
   })
 
   it('does NOT include progress_photos in the output (removed in Plan 01)', () => {
