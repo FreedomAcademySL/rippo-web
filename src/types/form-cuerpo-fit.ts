@@ -100,6 +100,7 @@ export interface FormCuerpoFitDto {
   foodScale: boolean
   cookingSpray: boolean
   stepCountingApp: boolean
+  walksEnoughSteps: boolean
   eatsJunkFoodMoreThan4PerWeek: boolean
   drinkEnoughWaterPerDay: boolean
   addiction: Addiction | string | null
@@ -108,6 +109,7 @@ export interface FormCuerpoFitDto {
   requireTreatmentCondition: RequireTreatmentConditions[] | string[] | null
   condition: Condition | string | null
   sleepProblem: SleepProblem[] | string[] | null
+  hasSleepProblems: boolean
   getUpTime: WakeUpDelay | string | null
   screenBeforeSleep: boolean
   workoutConsistency: number
